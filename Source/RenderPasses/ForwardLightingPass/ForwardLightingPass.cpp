@@ -137,6 +137,7 @@ void ForwardLightingPass::setScene(RenderContext* pRenderContext, const Scene::S
         Sampler::Desc samplerDesc;
         samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
         setSampler(Sampler::create(samplerDesc));
+        logInfo("[ForwardLightingPass::setScene] lightCount: '{}'", pScene->getLightCount());
     }
 }
 

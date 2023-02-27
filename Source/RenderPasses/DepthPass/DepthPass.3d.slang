@@ -29,7 +29,8 @@ import Scene.Raster;
 
 VSOut vsMain(VSIn vIn)
 {
-    return defaultVS(vIn);
+    VSOut vOut = defaultVS(vIn);
+    return vOut;
 }
 
 void psMain(VSOut vsOut, uint triangleIndex : SV_PrimitiveID) : SV_TARGET

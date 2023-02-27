@@ -25,46 +25,17 @@
  # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **************************************************************************/
-import Scene.Scene;
-import Utils.Math.MathHelpers;
+import Scene.Raster;
 
-#if _USE_SPHERICAL_MAP
-Texture2D gTexture;
-#else
-TextureCube gTexture;
-#endif
-SamplerState gSampler;
-
-cbuffer PerFrameCB
+VSOut vsMain(VSIn vIn)
 {
-    float4x4 gWorld;
-    float4x4 gViewMat;
-    float4x4 gProjMat;
-    float gScale;
-    EnvMap gEnvMap;
-};
-
-void vsMain(float4 posL : POSITION, out float3 dir : NORMAL, out float4 posH : SV_POSITION)
-{
-    dir = posL.xyz;
-    float4 viewPos = mul(gViewMat, mul(gWorld, posL));
-    posH = mul(gProjMat, viewPos);
-    posH.xy *= gScale;
-    posH.z = posH.w;
+    return defaultVS(vIn);
 }
 
-float4 psMain(float3 dir : NORMAL) : SV_TARGET
+void psMain(VSOut vsOut, uint triangleIndex : SV_PrimitiveID) : SV_TARGET
 {
-#if _USE_ENV_MAP
-    float3 color = gEnvMap.eval(dir);
-    // return float4(1.f, 0.f, 0.f, 1.f);
-    return float4(color, 1.f);
-#else
-#if _USE_SPHERICAL_MAP
-    float2 uv = world_to_latlong_map(dir);
-    return gTexture.Sample(gSampler, uv);
-#else
-    return gTexture.SampleLevel(gSampler, normalize(dir), 0);
+#if USE_ALPHA_TEST
+    let lod = ImplicitLodTextureSampler();
+    if (alphaTest(vsOut, triangleIndex, lod)) discard;
 #endif
-#endif // _USE_ENV_MAP
 }

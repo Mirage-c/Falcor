@@ -25,46 +25,57 @@
  # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **************************************************************************/
-import Scene.Scene;
-import Utils.Math.MathHelpers;
+#include "myRenderLibrary.h"
+#include "RenderGraph/RenderPassLibrary.h"
 
-#if _USE_SPHERICAL_MAP
-Texture2D gTexture;
-#else
-TextureCube gTexture;
-#endif
-SamplerState gSampler;
+const RenderPass::Info myRenderLibrary::kInfo { "myRenderLibrary", "Insert pass description here." };
 
-cbuffer PerFrameCB
+// Don't remove this. it's required for hot-reload to function properly
+extern "C" FALCOR_API_EXPORT const char* getProjDir()
 {
-    float4x4 gWorld;
-    float4x4 gViewMat;
-    float4x4 gProjMat;
-    float gScale;
-    EnvMap gEnvMap;
-};
-
-void vsMain(float4 posL : POSITION, out float3 dir : NORMAL, out float4 posH : SV_POSITION)
-{
-    dir = posL.xyz;
-    float4 viewPos = mul(gViewMat, mul(gWorld, posL));
-    posH = mul(gProjMat, viewPos);
-    posH.xy *= gScale;
-    posH.z = posH.w;
+    return PROJECT_DIR;
 }
 
-float4 psMain(float3 dir : NORMAL) : SV_TARGET
+extern "C" FALCOR_API_EXPORT void getPasses(Falcor::RenderPassLibrary& lib)
 {
-#if _USE_ENV_MAP
-    float3 color = gEnvMap.eval(dir);
-    // return float4(1.f, 0.f, 0.f, 1.f);
-    return float4(color, 1.f);
-#else
-#if _USE_SPHERICAL_MAP
-    float2 uv = world_to_latlong_map(dir);
-    return gTexture.Sample(gSampler, uv);
-#else
-    return gTexture.SampleLevel(gSampler, normalize(dir), 0);
-#endif
-#endif // _USE_ENV_MAP
+    lib.registerPass(myRenderLibrary::kInfo, myRenderLibrary::create);
+}
+
+myRenderLibrary::SharedPtr myRenderLibrary::create(RenderContext* pRenderContext, const Dictionary& dict)
+{
+    SharedPtr pPass = SharedPtr(new myRenderLibrary());
+    return pPass;
+}
+
+Dictionary myRenderLibrary::getScriptingDictionary()
+{
+    return Dictionary();
+}
+
+RenderPassReflection myRenderLibrary::reflect(const CompileData& compileData)
+{
+    // Define the required resources here
+    RenderPassReflection reflector;
+    reflector.addInput("input", "the source texture");
+    reflector.addOutput("output", "the destination texture");
+    return reflector;
+}
+
+void myRenderLibrary::execute(RenderContext* pRenderContext, const RenderData& renderData)
+{
+    const auto& pSrcTex = renderData.getTexture("input");
+    const auto& pDstTex = renderData.getTexture("output");
+
+    if (pSrcTex && pDstTex)
+    {
+        pRenderContext->blit(pSrcTex->getSRV(), pDstTex->getRTV());
+    }
+    else
+    {
+        logWarning("ExampleBlitPass::execute() - missing an input or output resource");
+    }
+}
+
+void myRenderLibrary::renderUI(Gui::Widgets& widget)
+{
 }

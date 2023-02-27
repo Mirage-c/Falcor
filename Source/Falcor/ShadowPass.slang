@@ -28,7 +28,6 @@
 #include "Scene/VertexAttrib.slangh"
 import Scene.Raster;
 import RenderPasses.CSM.CascadedShadowMap;
-import CascadedShadowMap;
 
 layout(binding = 0) SamplerState alphaSampler : register(s0);
 layout(binding = 1) texture2D alphaMap : register(t0);

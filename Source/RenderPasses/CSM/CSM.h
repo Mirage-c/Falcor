@@ -110,7 +110,7 @@ private:
     void setDataIntoVars(ShaderVar const& globalVars, ShaderVar const& csmDataVar);
     float2 calcDistanceRange(RenderContext* pRenderCtx, const Camera* pCamera, const Texture::SharedPtr& pDepthBuffer);
     void partitionCascades(const Camera* pCamera, const float2& distanceRange);
-    void renderScene(RenderContext* pCtx);
+    void renderScene(RenderContext* pCtx, Texture::SharedPtr pShadowBuffer);
 
     // Shadow-pass
     struct

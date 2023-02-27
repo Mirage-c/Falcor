@@ -84,7 +84,7 @@ ImageLoader::ImageLoader(const Dictionary& dict)
         else logWarning("Unknown field '{}' in a ImageLoader dictionary.", key);
     }
 
-    if (!mImagePath.empty())
+    if (!mImagePath.empty() && mImagePath.compare(".") != 0)
     {
         if (!loadImage(mImagePath))
         {

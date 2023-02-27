@@ -31,8 +31,9 @@ SamplerComparisonState gCsmCompareSampler;
 
 int getCascadeCount(CsmData csmData)
 {
-#ifdef _CSM_CASCADE_COUNT
-    return _CSM_CASCADE_COUNT;
+    // _CSM
+#ifdef _CASCADE_COUNT
+    return _CASCADE_COUNT;
 #else
     return csmData.cascadeCount;
 #endif
@@ -287,8 +288,8 @@ bool getCascadeParamsAndCheckForBlend(CsmData csmData, float cameraDepth, out in
     cascadeIndex = 0;
     weight = 0;
     bool blend = false;
-
-#if !defined(_CSM_CASCADE_COUNT) || (_CSM_CASCADE_COUNT != 1)
+// _CSM_CASCADE_COUNT
+#if !defined(_CASCADE_COUNT) || (_CASCADE_COUNT != 1)
     cascadeIndex = getCascadeIndex(csmData, cameraDepth);
     // Get the prev cascade factor
     weight = 1 - ((cameraDepth - csmData.cascadeRange[cascadeIndex].x) / csmData.cascadeRange[cascadeIndex].y);

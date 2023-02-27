@@ -1,5 +1,5 @@
 /***************************************************************************
- # Copyright (c) 2015-22, NVIDIA CORPORATION. All rights reserved.
+ # Copyright (c) 2015-21, NVIDIA CORPORATION. All rights reserved.
  #
  # Redistribution and use in source and binary forms, with or without
  # modification, are permitted provided that the following conditions
@@ -25,46 +25,34 @@
  # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **************************************************************************/
-import Scene.Scene;
-import Utils.Math.MathHelpers;
+#pragma once
+#include "Falcor.h"
 
-#if _USE_SPHERICAL_MAP
-Texture2D gTexture;
-#else
-TextureCube gTexture;
-#endif
-SamplerState gSampler;
+using namespace Falcor;
 
-cbuffer PerFrameCB
+class myRenderLibrary : public RenderPass
 {
-    float4x4 gWorld;
-    float4x4 gViewMat;
-    float4x4 gProjMat;
-    float gScale;
-    EnvMap gEnvMap;
+public:
+    using SharedPtr = std::shared_ptr<myRenderLibrary>;
+
+    static const Info kInfo;
+
+    /** Create a new render pass object.
+        \param[in] pRenderContext The render context.
+        \param[in] dict Dictionary of serialized parameters.
+        \return A new object, or an exception is thrown if creation failed.
+    */
+    static SharedPtr create(RenderContext* pRenderContext = nullptr, const Dictionary& dict = {});
+
+    virtual Dictionary getScriptingDictionary() override;
+    virtual RenderPassReflection reflect(const CompileData& compileData) override;
+    virtual void compile(RenderContext* pRenderContext, const CompileData& compileData) override {}
+    virtual void execute(RenderContext* pRenderContext, const RenderData& renderData) override;
+    virtual void renderUI(Gui::Widgets& widget) override;
+    virtual void setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene) override {}
+    virtual bool onMouseEvent(const MouseEvent& mouseEvent) override { return false; }
+    virtual bool onKeyEvent(const KeyboardEvent& keyEvent) override { return false; }
+
+private:
+    myRenderLibrary() : RenderPass(kInfo) {}
 };
-
-void vsMain(float4 posL : POSITION, out float3 dir : NORMAL, out float4 posH : SV_POSITION)
-{
-    dir = posL.xyz;
-    float4 viewPos = mul(gViewMat, mul(gWorld, posL));
-    posH = mul(gProjMat, viewPos);
-    posH.xy *= gScale;
-    posH.z = posH.w;
-}
-
-float4 psMain(float3 dir : NORMAL) : SV_TARGET
-{
-#if _USE_ENV_MAP
-    float3 color = gEnvMap.eval(dir);
-    // return float4(1.f, 0.f, 0.f, 1.f);
-    return float4(color, 1.f);
-#else
-#if _USE_SPHERICAL_MAP
-    float2 uv = world_to_latlong_map(dir);
-    return gTexture.Sample(gSampler, uv);
-#else
-    return gTexture.SampleLevel(gSampler, normalize(dir), 0);
-#endif
-#endif // _USE_ENV_MAP
-}

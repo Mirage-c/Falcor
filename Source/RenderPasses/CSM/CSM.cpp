@@ -96,6 +96,7 @@ namespace
 
     const std::string kDepth = "depth";
     const std::string kVisibility = "visibility";
+    const std::string kShadowMap = "shadowMap";
     const std::string kBlurPass = "GaussianBlur";
 
     const std::string kMapSize = "mapSize";
@@ -288,6 +289,7 @@ void CSM::createShadowPassResources()
     Program::DefineList defines;
     defines.add("TEST_ALPHA");
     defines.add("_CASCADE_COUNT", std::to_string(mCsmData.cascadeCount));
+    logInfo("[CSM::createShadowPassResources] _CASCADE_COUNT: '{}'", mCsmData.cascadeCount);
     defines.add("_ALPHA_CHANNEL", "a");
     ResourceFormat colorFormat = ResourceFormat::Unknown;
     switch ((CsmFilter)mCsmData.filterMode)
@@ -418,6 +420,7 @@ RenderPassReflection CSM::reflect(const CompileData& compileData)
     reflector.addOutput(kVisibility, "Visibility map. Values are [0,1] where 0 means the pixel is completely shadowed and 1 means it's not shadowed at all")
         .format(getVisBufferFormat(mVisibilityPassData.mapBitsPerChannel, mVisibilityPassData.shouldVisualizeCascades))
         .texture2D(0, 0);
+    reflector.addOutput(kShadowMap, "Shadow Map.").format(ResourceFormat::D32Float).texture2D(0, 0);
     reflector.addInput(kDepth, "Pre-initialized scene depth buffer used for SDSM.\nIf not provided, the pass will run a depth-pass internally").flags(RenderPassReflection::Field::Flags::Optional);
     return reflector;
 }
@@ -591,7 +594,7 @@ void CSM::partitionCascades(const Camera* pCamera, const float2& distanceRange)
     }
 }
 
-void CSM::renderScene(RenderContext* pCtx)
+void CSM::renderScene(RenderContext* pCtx, Texture::SharedPtr pShadowBuffer)
 {
     auto pCB = mShadowPass.pVars->getParameterBlock(mPerLightCbLoc);
 #define check_offset(_a) FALCOR_ASSERT(pCB["gCsmData"][#_a].getByteOffset() == offsetof(CsmData, _a))
@@ -613,6 +616,8 @@ void CSM::renderScene(RenderContext* pCtx)
     mpLightCamera->setProjectionMatrix(mCsmData.globalMat);
     mpScene->rasterize(pCtx, mShadowPass.pState.get(), mShadowPass.pVars.get());
     //        mpCsmSceneRenderer->renderScene(pCtx, mShadowPass.pState.get(), mShadowPass.pVars.get(), mpLightCamera.get());
+
+    pShadowBuffer = mShadowPass.pState->getFbo()->getDepthStencilTexture();
 }
 
 void CSM::executeDepthPass(RenderContext* pCtx, const Camera* pCamera)
@@ -703,7 +708,7 @@ void CSM::setDataIntoVars(ShaderVar const& globalVars, ShaderVar const& csmDataV
         csmDataVar["csmSampler"] = mShadowPass.pVSMTrilinearSampler;
         break;
     }
-
+    // logInfo("CSM Filter: '{}'", mCsmData.filterMode);
     mCsmData.lightDir = glm::normalize(((DirectionalLight*)mpLight.get())->getWorldDirection());
     csmDataVar.setBlob(mCsmData);
 }
@@ -734,6 +739,7 @@ void CSM::execute(RenderContext* pRenderContext, const RenderData& renderData)
 
     setupVisibilityPassFbo(renderData.getTexture(kVisibility));
     const auto& pDepth = renderData.getTexture(kDepth);
+    const auto& pShadow = renderData.getTexture(kShadowMap);
     const auto pCamera = mpScene->getCamera().get();
     //const auto pCamera = mpCsmSceneRenderer->getScene()->getActiveCamera().get();
 
@@ -755,7 +761,7 @@ void CSM::execute(RenderContext* pRenderContext, const RenderData& renderData)
     mShadowPass.pState->setViewport(0, VP);
     /*mpCsmSceneRenderer->setDepthClamp(mControls.depthClamp);*/
     partitionCascades(pCamera, distanceRange);
-    renderScene(pRenderContext);
+    renderScene(pRenderContext, pShadow);
 
     if ((CsmFilter)mCsmData.filterMode == CsmFilter::Vsm || (CsmFilter)mCsmData.filterMode == CsmFilter::Evsm2 || (CsmFilter)mCsmData.filterMode == CsmFilter::Evsm4)
     {
@@ -789,6 +795,7 @@ void CSM::setLight(const Light::SharedConstPtr& pLight)
     {
         setCascadeCount(1);
     }
+    logInfo("[CSM::setLight()] lightType: '{}'", mpLight->getLightType());
 }
 
 void CSM::setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene)

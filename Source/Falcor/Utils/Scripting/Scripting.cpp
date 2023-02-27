@@ -57,7 +57,7 @@ namespace Falcor
                 pybind11::initialize_interpreter();
                 sDefaultContext.reset(new Context());
                 // Import falcor into default scripting context.
-                Scripting::runScript("from falcor import *");
+                Scripting::runScript("from falcor import *\nfrom pathlib import WindowsPath");
             }
             catch (const std::exception& e)
             {

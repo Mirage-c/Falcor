@@ -112,7 +112,7 @@ SkyBox::SharedPtr SkyBox::create(RenderContext* pRenderContext, const Dictionary
     if (!pSkyBox->mTexPath.empty())
     {
         pTexture = Texture::createFromFile(pSkyBox->mTexPath, false, pSkyBox->mLoadSrgb);
-        if (pTexture == nullptr) throw RuntimeError("SkyBox: Failed to load skybox texture '{}'", pSkyBox->mTexPath);
+        if (pTexture == nullptr) logError("SkyBox: Failed to load skybox texture '{}'", pSkyBox->mTexPath); // throw RuntimeError
         pSkyBox->setTexture(pTexture);
     }
     return pSkyBox;

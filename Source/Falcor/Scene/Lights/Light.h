@@ -66,6 +66,8 @@ namespace Falcor
         */
         LightType getType() const { return (LightType)mData.type; }
 
+        uint32_t getLightType() const { return mData.type;  }
+
         /** Get the light data
         */
         inline const LightData& getData() const { return mData; }
