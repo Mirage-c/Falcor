@@ -63,7 +63,7 @@ RenderPassReflection WireframePass::reflect(const CompileData& compileData)
 {
     // Define the required resources here
     RenderPassReflection reflector;
-    reflector.addOutput("dst", "Renders a scene as a wireframe");
+    reflector.addOutput("output", "Renders a scene as a wireframe");
     return reflector;
 }
 
@@ -81,7 +81,7 @@ void WireframePass::execute(RenderContext* pRenderContext, const RenderData& ren
         // Falcor::RasterizerState::CullMode renderFlags = Falcor::RasterizerState::;
         mpVars["PerFrameCB"]["gColor"] = float4(0, 1, 0, 1);
 
-        mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpVars.get());
+        mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpVars.get(), mpRasterState, mpRasterState);
     }
 }
 
