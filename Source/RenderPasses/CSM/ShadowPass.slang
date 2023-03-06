@@ -60,6 +60,8 @@ struct ShadowPassVSOut
 #endif
 };
 
+
+
 ShadowPassVSOut vsMain(VSIn vIn)
 {
     ShadowPassVSOut vOut;
@@ -131,3 +133,4 @@ void psMain(ShadowPassPSIn pIn)
 #else
 #endif
 }
+

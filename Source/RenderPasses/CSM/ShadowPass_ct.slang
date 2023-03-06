@@ -1,5 +1,5 @@
 /***************************************************************************
- # Copyright (c) 2015-21, NVIDIA CORPORATION. All rights reserved.
+ # Copyright (c) 2015-22, NVIDIA CORPORATION. All rights reserved.
  #
  # Redistribution and use in source and binary forms, with or without
  # modification, are permitted provided that the following conditions
@@ -25,53 +25,67 @@
  # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **************************************************************************/
-#pragma once
-#include "Utils/HostDeviceShared.slangh"
+#include "Scene/VertexAttrib.slangh"
+import Scene.Raster;
+import RenderPasses.CSM.CascadedShadowMap;
+import CascadedShadowMap;
 
-BEGIN_NAMESPACE_FALCOR
+layout(binding = 0) SamplerState alphaSampler : register(s0);
+layout(binding = 1) texture2D alphaMap : register(t0);
 
-enum class CsmFilter
+layout(binding = 2) cbuffer AlphaMapCB : register(b1)
 {
-    Point,
-    HwPcf,
-    FixedPcf,
-    Vsm,
-    Evsm2,
-    Evsm4,
-    StochasticPcf,
+    float alphaThreshold;
 };
 
-struct CsmData
+layout(binding = 3) cbuffer PerLightCB : register(b0)
 {
-    static const uint32_t kMaxCascades = 8;
-
-    float4x4 globalMat;
-    float4 cascadeScale[kMaxCascades];
-    float4 cascadeOffset[kMaxCascades];
-
-    //Only uses xy
-    float4 cascadeRange[kMaxCascades];  // In camera clip-space
-
-    float depthBias = 0.005f;
-    uint32_t cascadeCount = 1; // 4
-    uint32_t filterMode = (uint32_t)CsmFilter::HwPcf; // TODO: Make the field an enum when that works in Slang
-    int32_t pcfKernelWidth = 5;
-
-    float3 lightDir;
-    float lightBleedingReduction = 0;
-
-    float2 evsmExponents = float2(5.54f, 3.0f); // posExp, negExp
-    float cascadeBlendThreshold = 0.0f;
-    uint32_t padding;
-
-#ifndef HOST_CODE
-    Texture2DArray shadowMap;
-    SamplerState csmSampler;
-#endif
+    CsmData gCsmData;
 };
 
-#ifdef HOST_CODE
-static_assert(sizeof(CsmData) % sizeof(float4) == 0, "CsmData size should be aligned on float4 size");
-#endif
+struct ShadowPassPSIn
+{
+    float2 texC : TexCoord;
+    float4 pos : SV_POSITION;
+    uint rtIndex : SV_RenderTargetArrayIndex;
+};
 
-END_NAMESPACE_FALCOR
+struct ShadowPassVSOut
+{
+    float2 texC : TEXCOORD;
+    float4 pos : POSITION;
+};
+
+struct PsOut
+{
+    // float4 depth : SV_TARGET0;
+    float4 posW : SV_TARGET0;
+    float4 normW : SV_TARGET1;
+    float4 color : SV_TARGET2;
+};
+
+VSOut vsMain(VSIn vIn)
+{
+    VSOut vOut;
+    vOut = defaultVS(vIn);
+    // const GeometryInstanceID instanceID = { vIn.instanceID };
+
+    // float4x4 worldMat = gScene.getWorldMatrix(instanceID);
+    // vOut.pos = mul(worldMat, float4(vIn.pos, 1.f));
+    vOut.posH = mul(gCsmData.globalMat, float4(vOut.posW, 1.f));
+    vOut.posH.xyz *= gCsmData.cascadeScale[0].xyz;
+    vOut.posH.xyz += gCsmData.cascadeOffset[0].xyz;
+    // vOut.texC = vIn.texC;
+    return vOut;
+}
+
+float4 psMain(VSOut vsout) : SV_TARGET0
+{
+
+    PsOut psout;
+    psout.color = float4(1.f, 0.f, 0.f, 1.f);
+    psout.normW = float4(0.f, 1.f, 1.f, 1.f);
+    psout.posW = float4(1.f, 1.f, 1.f, 1.f);
+    return float4(1.f, 1.f, 1.f, 1.f);
+}
+

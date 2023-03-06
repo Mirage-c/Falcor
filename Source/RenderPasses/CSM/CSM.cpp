@@ -107,9 +107,13 @@ namespace
     const std::string kBlurSigma = "blurSigma";
 
     const std::string kDepthPassFile = "RenderPasses/CSM/DepthPass.slang";
-    const std::string kShadowPassfile = "RenderPasses/CSM/ShadowPass.slang";
+    const std::string kShadowPassfile = "RenderPasses/CSM/ShadowPass_ct.slang";
     const std::string kVisibilityPassFile = "RenderPasses/CSM/VisibilityPass.ps.slang";
     const std::string kSdsmReadbackLatency = "kSdsmReadbackLatency";
+
+    const std::string kPosW = "worldPosition";
+    const std::string kNorm = "normal";
+    const std::string kColor = "color";
 }
 
 #if 0
@@ -325,7 +329,8 @@ void CSM::createShadowPassResources()
     // Create the shadows program
     GraphicsProgram::Desc desc;
     desc.addShaderLibrary(kShadowPassfile);
-    desc.vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
+    // desc.vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
+    desc.vsEntry("vsMain").psEntry("psMain");
 
     mShadowPass.pProgram = GraphicsProgram::create(desc, defines);
     if (mpScene)
@@ -421,6 +426,10 @@ RenderPassReflection CSM::reflect(const CompileData& compileData)
         .format(getVisBufferFormat(mVisibilityPassData.mapBitsPerChannel, mVisibilityPassData.shouldVisualizeCascades))
         .texture2D(0, 0);
     reflector.addOutput(kShadowMap, "Shadow Map.").format(ResourceFormat::D32Float).texture2D(0, 0);
+    reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).bindFlags(Resource::BindFlags::RenderTarget).texture2D(0, 0);
+    reflector.addOutput(kNorm, "World space normal").format(ResourceFormat::RGBA32Float).bindFlags(Resource::BindFlags::RenderTarget).texture2D(0, 0);
+    reflector.addOutput(kColor, "Color").format(ResourceFormat::RGBA32Float).bindFlags(Resource::BindFlags::RenderTarget).texture2D(0, 0); // .bindFlags(Resource::BindFlags::RenderTarget).texture2D(dim.x, dim.y)
+
     reflector.addInput(kDepth, "Pre-initialized scene depth buffer used for SDSM.\nIf not provided, the pass will run a depth-pass internally").flags(RenderPassReflection::Field::Flags::Optional);
     return reflector;
 }
@@ -528,14 +537,14 @@ void CSM::partitionCascades(const Camera* pCamera, const float2& distanceRange)
     // Create the global shadow space
     createShadowMatrix(mpLight.get(), camFrustum.center, camFrustum.radius, mShadowPass.fboAspectRatio, mCsmData.globalMat);
 
-    if (mCsmData.cascadeCount == 1)
-    {
-        mCsmData.cascadeScale[0] = float4(1);
-        mCsmData.cascadeOffset[0] = float4(0);
-        mCsmData.cascadeRange[0].x = 0;
-        mCsmData.cascadeRange[0].y = 1;
-        return;
-    }
+    // if (mCsmData.cascadeCount == 1)
+    // {
+    //     mCsmData.cascadeScale[0] = float4(1);
+    //     mCsmData.cascadeOffset[0] = float4(0);
+    //     mCsmData.cascadeRange[0].x = 0;
+    //     mCsmData.cascadeRange[0].y = 1;
+    //     return;
+    // }
 
     float nearPlane = pCamera->getNearPlane();
     float farPlane = pCamera->getFarPlane();
@@ -591,6 +600,7 @@ void CSM::partitionCascades(const Camera* pCamera, const float2& distanceRange)
         }
 
         getCascadeCropParams(cascadeFrust, mCsmData.globalMat, mCsmData.cascadeScale[c], mCsmData.cascadeOffset[c]);
+        // logInfo("### [{}] cascadeScale: {},{},{},{} ### cascadeOffset: {},{},{},{}", c, mCsmData.cascadeScale[c].x, mCsmData.cascadeScale[c].y, mCsmData.cascadeScale[c].z, mCsmData.cascadeScale[c].w, mCsmData.cascadeOffset[c].x, mCsmData.cascadeOffset[c].y, mCsmData.cascadeOffset[c].z, mCsmData.cascadeOffset[c].w);
     }
 }
 
@@ -741,6 +751,18 @@ void CSM::execute(RenderContext* pRenderContext, const RenderData& renderData)
     const auto& pDepth = renderData.getTexture(kDepth);
     const auto& pShadow = renderData.getTexture(kShadowMap);
     const auto pCamera = mpScene->getCamera().get();
+
+    Texture::SharedPtr pPosW = renderData.getTexture(kPosW);
+    Texture::SharedPtr pNorm = renderData.getTexture(kNorm);
+    Texture::SharedPtr pColor = renderData.getTexture(kColor);
+
+    // mShadowPass.pFbo->attachColorTarget(pDepth, 0);
+    // mShadowPass.pFbo->attachColorTarget(pPosW, 0);
+    // mShadowPass.pFbo->attachColorTarget(pNorm, 1);
+    // mShadowPass.pFbo->attachColorTarget(pColor, 2);
+    
+
+
     //const auto pCamera = mpCsmSceneRenderer->getScene()->getActiveCamera().get();
 
     const float4 clearColor(0);
@@ -762,6 +784,7 @@ void CSM::execute(RenderContext* pRenderContext, const RenderData& renderData)
     /*mpCsmSceneRenderer->setDepthClamp(mControls.depthClamp);*/
     partitionCascades(pCamera, distanceRange);
     renderScene(pRenderContext, pShadow);
+
 
     if ((CsmFilter)mCsmData.filterMode == CsmFilter::Vsm || (CsmFilter)mCsmData.filterMode == CsmFilter::Evsm2 || (CsmFilter)mCsmData.filterMode == CsmFilter::Evsm4)
     {

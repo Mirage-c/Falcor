@@ -30,10 +30,10 @@
 
 using namespace Falcor;
 
-class WireframePass : public RenderPass
+class RSMBuffer : public RenderPass
 {
 public:
-    using SharedPtr = std::shared_ptr<WireframePass>;
+    using SharedPtr = std::shared_ptr<RSMBuffer>;
 
     static const Info kInfo;
 
@@ -54,22 +54,31 @@ public:
     virtual bool onKeyEvent(const KeyboardEvent& keyEvent) override { return false; }
 
 private:
-    WireframePass() : RenderPass(kInfo) {
-        mpProgram = GraphicsProgram::createFromFile("RenderPasses/WireframePass/Wireframe.3d.slang", "vsMain", "psMain");
-
-        RasterizerState::Desc wireframeDesc;
-        wireframeDesc.setFillMode(RasterizerState::FillMode::Wireframe);
-        wireframeDesc.setCullMode(RasterizerState::CullMode::None);
-        mpRasterState = RasterizerState::create(wireframeDesc);
-
-        mpGraphicsState = GraphicsState::create();
-        mpGraphicsState->setProgram(mpProgram);
-        mpGraphicsState->setRasterizerState(mpRasterState);
-    }
+    RSMBuffer();
     Scene::SharedPtr mpScene;
-    GraphicsProgram::SharedPtr mpProgram;
-    GraphicsState::SharedPtr mpGraphicsState;
-    RasterizerState::SharedPtr mpRasterState;
-    GraphicsVars::SharedPtr mpVars;
+    uint2 mMapSize = uint2(2048, 2048);
     Light::SharedConstPtr mpLight;
+    Camera::SharedPtr mpLightCamera;
+
+    void setLight(const Light::SharedConstPtr& pLight);
+
+    void createShadowPassResources();
+    // Shadow-pass
+    struct
+    {
+        Fbo::SharedPtr pFbo;
+        float fboAspectRatio;
+        Sampler::SharedPtr pPointCmpSampler;
+        Sampler::SharedPtr pLinearCmpSampler;
+        Sampler::SharedPtr pVSMTrilinearSampler;
+        GraphicsProgram::SharedPtr pProgram;
+        GraphicsVars::SharedPtr pVars;
+        GraphicsState::SharedPtr pState;
+        float2 mapSize;
+    } mShadowPass;
+    RasterizerState::SharedPtr rsState;
+    ProgramReflection::BindLocation mPerLightCbLoc;
+    void partitionCascades(const Camera* pCamera, const float2& distanceRange);
+    rmcv::mat4 globalMat;
+    rmcv::float4 cascadeScale, cascadeOffset;
 };

@@ -77,7 +77,9 @@ VSOut defaultVS(VSIn vIn)
     const GeometryInstanceID instanceID = { vIn.instanceID };
 
     float4x4 worldMat = gScene.getWorldMatrix(instanceID);
-    float3 posW = mul(worldMat, float4(vIn.pos, 1.f)).xyz;
+    float4 pos = mul(worldMat, float4(vIn.pos, 1.f));
+    // float3 posW = mul(worldMat, float4(vIn.pos, 1.f)).xyz;
+    float3 posW = pos.xyz / pos.w;
     vOut.posW = posW;
     vOut.posH = mul(gScene.camera.getViewProj(), float4(posW, 1.f));
 
