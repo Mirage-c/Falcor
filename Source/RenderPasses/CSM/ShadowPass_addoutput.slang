@@ -27,16 +27,36 @@
  **************************************************************************/
 #include "Scene/VertexAttrib.slangh"
 import Scene.Raster;
-import Utils.Math.MathHelpers;
-import Rendering.Lights.LightHelpers;
-import Rendering.Lights.EnvMapLighting;
-import Utils.Sampling.TinyUniformSampleGenerator;
+import RenderPasses.CSM.CascadedShadowMap;
+import CascadedShadowMap;
 
-cbuffer PerFrameCB
+layout(binding = 0) SamplerState alphaSampler : register(s0);
+layout(binding = 1) texture2D alphaMap : register(t0);
+
+layout(binding = 2) cbuffer AlphaMapCB : register(b1)
 {
-    float4x4 globalMat;
-    float4 cascadeScale;
-    float4 cascadeOffset;
+    float alphaThreshold;
+};
+
+layout(binding = 3) cbuffer PerLightCB : register(b0)
+{
+    CsmData gCsmData;
+};
+
+struct ShadowPassPSIn
+{
+    VSOut vsout;
+    uint rtIndex : SV_RenderTargetArrayIndex;
+};
+
+struct ShadowPassVSOut
+{
+    float2 texC : TEXCOORD;
+#ifdef _APPLY_PROJECTION
+    float4 pos : SV_POSITION;
+#else
+    float4 pos : POSITION;
+#endif
 };
 
 struct PsOut
@@ -49,38 +69,46 @@ struct PsOut
 
 VSOut vsMain(VSIn vIn)
 {
-    VSOut vOut;
-    vOut = defaultVS(vIn);
-    vOut.posH = mul(globalMat, float4(vOut.posW, 1.f));
-    vOut.posH.xyz *= cascadeScale.xyz;
-    vOut.posH.xyz += cascadeOffset.xyz;
-    return vOut;
+    return defaultVS(vIn);
 }
 
-
-PsOut psMain(VSOut pIn, uint triangleIndex : SV_PrimitiveID)
+//This is just so it wont crash on link if _CASCADE_COUNT is not defined.
+#ifndef _CASCADE_COUNT
+#define _CASCADE_COUNT 1
+#endif
+[instance(_CASCADE_COUNT)]
+[maxvertexcount(3)]
+void gsMain(triangle VSOut input[3], uint InstanceID : SV_GSInstanceID, inout TriangleStream<ShadowPassPSIn> outStream)
 {
+    ShadowPassPSIn outputData;
+
+    for(int i = 0 ; i < 3 ; i++)
+    {
+        outputData.vsout = input[i];
+        outputData.vsout.posH = mul(gCsmData.globalMat, float4(input[i].posW, 1.f));
+        outputData.vsout.posH.xyz *= gCsmData.cascadeScale[InstanceID].xyz;
+        outputData.vsout.posH.xyz += gCsmData.cascadeOffset[InstanceID].xyz;
+        outputData.rtIndex = InstanceID;
+
+        outStream.Append(outputData);
+    }
+
+    outStream.RestartStrip();
+}
+
+PsOut psMain(ShadowPassPSIn pIn)
+{
+#ifdef TEST_ALPHA
+    float alpha = alphaMap.Sample(alphaSampler, pIn.vsout.texC)._ALPHA_CHANNEL;
+    if(alpha < alphaThreshold)
+    {
+        discard;
+    }
+#endif
     PsOut psout;
-    // psout.depth = float4(float3(pIn.posH.z), 1.f);
-    psout.posW = float4(float3(pIn.posW), 1.f);
-
-    let lod = ImplicitLodTextureSampler();
-    // if (alphaTest(pIn, triangleIndex, lod)) discard;
-
-    float3 viewDir = normalize(gScene.camera.getPosition() - pIn.posW);
-    
-    ShadingData sd = prepareShadingData(pIn, triangleIndex, viewDir, lod);
-    psout.normW = float4(sd.N * 0.5f + 0.5f, 1.0f);
-
-    AnalyticLightSample ls;
-    let bsdf = gScene.materials.getBSDF(sd, lod);
-    evalLightApproximate(sd.posW, gScene.getLight(0), ls);
-    const uint2 pixel = pIn.posH.xy;
-    TinyUniformSampleGenerator sg = TinyUniformSampleGenerator(pixel, 0);
-
-    psout.color.rgb = bsdf.eval(sd, ls.dir, sg) * ls.Li;
-    // psout.color = float4(1.f, 0.f, 0.f, 1.f);
-    // psout.normW = float4(0.f, 1.f, 1.f, 1.f);
-    // psout.posW = float4(1.f, 1.f, 1.f, 1.f);
+    psout.color = float4(1.f, 0.f, 0.f, 1.f);
+    psout.normW = float4(0.f, 1.f, 1.f, 1.f);
+    psout.posW = float4(1.f, 1.f, 1.f, 1.f);
     return psout;
 }
+

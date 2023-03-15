@@ -107,7 +107,7 @@ namespace
     const std::string kBlurSigma = "blurSigma";
 
     const std::string kDepthPassFile = "RenderPasses/CSM/DepthPass.slang";
-    const std::string kShadowPassfile = "RenderPasses/CSM/ShadowPass_ct.slang";
+    const std::string kShadowPassfile = "RenderPasses/CSM/ShadowPass.slang";
     const std::string kVisibilityPassFile = "RenderPasses/CSM/VisibilityPass.ps.slang";
     const std::string kSdsmReadbackLatency = "kSdsmReadbackLatency";
 
@@ -329,8 +329,8 @@ void CSM::createShadowPassResources()
     // Create the shadows program
     GraphicsProgram::Desc desc;
     desc.addShaderLibrary(kShadowPassfile);
-    // desc.vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
-    desc.vsEntry("vsMain").psEntry("psMain");
+    desc.vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
+    // desc.vsEntry("vsMain").psEntry("psMain");
 
     mShadowPass.pProgram = GraphicsProgram::create(desc, defines);
     if (mpScene)
