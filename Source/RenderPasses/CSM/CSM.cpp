@@ -627,7 +627,7 @@ void CSM::renderScene(RenderContext* pCtx, Texture::SharedPtr pShadowBuffer)
     mpScene->rasterize(pCtx, mShadowPass.pState.get(), mShadowPass.pVars.get());
     //        mpCsmSceneRenderer->renderScene(pCtx, mShadowPass.pState.get(), mShadowPass.pVars.get(), mpLightCamera.get());
 
-    pShadowBuffer = mShadowPass.pState->getFbo()->getDepthStencilTexture();
+    // pShadowBuffer = mShadowPass.pState->getFbo()->getDepthStencilTexture();
 }
 
 void CSM::executeDepthPass(RenderContext* pCtx, const Camera* pCamera)
@@ -770,6 +770,8 @@ void CSM::execute(RenderContext* pRenderContext, const RenderData& renderData)
 
     // Calc the bounds
     float2 distanceRange = calcDistanceRange(pRenderContext, pCamera, pDepth);
+    // logInfo("mSdsmData.sdsmResult: {}, {}", mSdsmData.sdsmResult.x, mSdsmData.sdsmResult.y);
+
 
     GraphicsState::Viewport VP;
     VP.originX = 0;
@@ -784,7 +786,7 @@ void CSM::execute(RenderContext* pRenderContext, const RenderData& renderData)
     /*mpCsmSceneRenderer->setDepthClamp(mControls.depthClamp);*/
     partitionCascades(pCamera, distanceRange);
     renderScene(pRenderContext, pShadow);
-
+    pRenderContext->copyResource(pShadow.get(), mShadowPass.pState->getFbo()->getDepthStencilTexture().get());
 
     if ((CsmFilter)mCsmData.filterMode == CsmFilter::Vsm || (CsmFilter)mCsmData.filterMode == CsmFilter::Evsm2 || (CsmFilter)mCsmData.filterMode == CsmFilter::Evsm4)
     {

@@ -164,7 +164,7 @@ private:
     struct
     {
         //This is effectively a bool, but bool only takes up 1 byte which messes up setBlob
-        uint32_t shouldVisualizeCascades = 0u;
+        uint32_t shouldVisualizeCascades = 1u;
 #ifndef FALCOR_GFX_VK
         // `padding` is not need for Vulkan, since we use `scalar` layout there so everything will
         // be packed tightly.

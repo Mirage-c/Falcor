@@ -39,13 +39,6 @@ cbuffer PerFrameCB
     float4 cascadeOffset;
 };
 
-struct PsOut
-{
-    // float4 depth : SV_TARGET0;
-    float4 posW : SV_TARGET0;
-    float4 normW : SV_TARGET1;
-    float4 color : SV_TARGET2;
-};
 
 VSOut vsMain(VSIn vIn)
 {
@@ -57,30 +50,6 @@ VSOut vsMain(VSIn vIn)
     return vOut;
 }
 
-
-PsOut psMain(VSOut pIn, uint triangleIndex : SV_PrimitiveID)
+void psMain(VSOut pIn, uint triangleIndex: SV_PrimitiveID) : SV_TARGET
 {
-    PsOut psout;
-    // psout.depth = float4(float3(pIn.posH.z), 1.f);
-    psout.posW = float4(float3(pIn.posW), 1.f);
-
-    let lod = ImplicitLodTextureSampler();
-    // if (alphaTest(pIn, triangleIndex, lod)) discard;
-
-    float3 viewDir = normalize(gScene.camera.getPosition() - pIn.posW);
-    
-    ShadingData sd = prepareShadingData(pIn, triangleIndex, viewDir, lod);
-    psout.normW = float4(sd.N * 0.5f + 0.5f, 1.0f);
-
-    AnalyticLightSample ls;
-    let bsdf = gScene.materials.getBSDF(sd, lod);
-    evalLightApproximate(sd.posW, gScene.getLight(0), ls);
-    const uint2 pixel = pIn.posH.xy;
-    TinyUniformSampleGenerator sg = TinyUniformSampleGenerator(pixel, 0);
-
-    psout.color.rgb = bsdf.eval(sd, ls.dir, sg) * ls.Li;
-    psout.color = float4(1.f, 0.f, 0.f, 1.f);
-    psout.normW = float4(0.f, 1.f, 1.f, 1.f);
-    psout.posW = float4(1.f, 1.f, 1.f, 1.f);
-    return psout;
 }

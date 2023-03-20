@@ -27,13 +27,14 @@
  **************************************************************************/
 #pragma once
 #include "Falcor.h"
+#include "Utils/Algorithm/ParallelReduction.h"
 
 using namespace Falcor;
 
-class RSMBuffer : public RenderPass
+class ShadowDepthPass : public RenderPass
 {
 public:
-    using SharedPtr = std::shared_ptr<RSMBuffer>;
+    using SharedPtr = std::shared_ptr<ShadowDepthPass>;
 
     static const Info kInfo;
 
@@ -54,7 +55,7 @@ public:
     virtual bool onKeyEvent(const KeyboardEvent& keyEvent) override { return false; }
 
 private:
-    RSMBuffer();
+    ShadowDepthPass();
     Scene::SharedPtr mpScene;
     uint2 mMapSize = uint2(2048, 2048);
     Light::SharedConstPtr mpLight;
@@ -68,17 +69,26 @@ private:
     {
         Fbo::SharedPtr pFbo;
         float fboAspectRatio;
-        Sampler::SharedPtr pPointCmpSampler;
-        Sampler::SharedPtr pLinearCmpSampler;
-        Sampler::SharedPtr pVSMTrilinearSampler;
         GraphicsProgram::SharedPtr pProgram;
         GraphicsVars::SharedPtr pVars;
         GraphicsState::SharedPtr pState;
         float2 mapSize;
-    } mShadowPass, mShadowDepthPass;
-    RasterizerState::SharedPtr rsState;
-    ProgramReflection::BindLocation mPerLightCbLoc;
+    } mShadowPass;
     void partitionCascades(const Camera* pCamera, const float2& distanceRange);
     rmcv::mat4 globalMat;
     rmcv::float4 cascadeScale, cascadeOffset;
+
+    // SDSM
+    struct SdsmData
+    {
+        ParallelReduction::UniquePtr minMaxReduction;
+        float2 sdsmResult;   // Used for displaying the range in the UI
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint32_t sampleCount = 0;
+        int32_t readbackLatency = 1;
+    };
+    SdsmData mSdsmData;
+    void createSdsmData(Texture::SharedPtr pTexture);
+    void reduceDepthSdsmMinMax(RenderContext* pRenderCtx, const Camera* pCamera, const Texture::SharedPtr pDepthBuffer);
 };
