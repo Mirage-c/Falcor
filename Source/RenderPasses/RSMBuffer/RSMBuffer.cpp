@@ -107,10 +107,10 @@ RenderPassReflection RSMBuffer::reflect(const CompileData& compileData)
 
 
     const uint2 dim = { 512, 512 }; // TODO
-    reflector.addInput(kDepth, "Depth buffer").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(dim.x, dim.y);
-    reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float);
-    reflector.addOutput(kNorm, "World space normal").format(ResourceFormat::RGBA32Float);
-    reflector.addOutput(kColor, "Color").format(ResourceFormat::RGBA32Float); // .bindFlags(Resource::BindFlags::RenderTarget).texture2D(dim.x, dim.y)
+    reflector.addInput(kDepth, "Depth buffer").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(0,0);
+    reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addOutput(kNorm, "World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addOutput(kColor, "Color").format(ResourceFormat::RGBA32Float).texture2D(0, 0); // .bindFlags(Resource::BindFlags::RenderTarget).texture2D(dim.x, dim.y)
     return reflector;
 }
 
@@ -274,15 +274,15 @@ void RSMBuffer::execute(RenderContext* pRenderContext, const RenderData& renderD
     if (!mpLight || !mpScene) return;
     InternalDictionary& dict = renderData.getDictionary();
     // setup fbo
-    Texture::SharedPtr pDepth;
+    // Texture::SharedPtr pDepth;
     Texture::SharedPtr pPreDepth = renderData.getTexture(kDepth);
-    pRenderContext->copyResource(pDepth.get(), pPreDepth.get());
+    // pRenderContext->copyResource(pDepth.get(), pPreDepth.get());
     Texture::SharedPtr pPosW = renderData.getTexture(kPosW);
     Texture::SharedPtr pNorm = renderData.getTexture(kNorm);
     Texture::SharedPtr pColor = renderData.getTexture(kColor);
 
     // mShadowPass.pFbo->attachColorTarget(pDepth, 0);
-    mShadowPass.pFbo->attachDepthStencilTarget(pDepth);
+    mShadowPass.pFbo->attachDepthStencilTarget(pPreDepth);
     mShadowPass.pFbo->attachColorTarget(pPosW, 0);
     mShadowPass.pFbo->attachColorTarget(pNorm, 1);
     mShadowPass.pFbo->attachColorTarget(pColor, 2);
@@ -319,6 +319,9 @@ void RSMBuffer::execute(RenderContext* pRenderContext, const RenderData& renderD
     mShadowPass.pVars["PerFrameCB"]["globalMat"] = globalMat;
     mShadowPass.pVars["PerFrameCB"]["cascadeScale"] = cascadeScale;
     mShadowPass.pVars["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
+
+    // logInfo("scale: ({}, {}), offset: ({}. {})",cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
+
 
     mpScene->rasterize(pRenderContext, mShadowPass.pState.get(), mShadowPass.pVars.get(), rsState, rsState);
 }

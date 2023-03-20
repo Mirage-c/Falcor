@@ -319,7 +319,11 @@ void ShadowDepthPass::execute(RenderContext* pRenderContext, const RenderData& r
     mShadowPass.pVars["PerFrameCB"]["cascadeScale"] = cascadeScale;
     mShadowPass.pVars["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
 
-    logInfo("mSdsmData.sdsmResult: {}, {}; scale: ({}, {}), offset: ({}. {})", mSdsmData.sdsmResult.x, mSdsmData.sdsmResult.y, cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
+    InternalDictionary& dict = renderData.getDictionary();
+    dict["globalMat"] = globalMat;
+    dict["cascadeScale"] = cascadeScale;
+    dict["cascadeOffset"] = cascadeOffset;
+   // logInfo("mSdsmData.sdsmResult: {}, {}; scale: ({}, {}), offset: ({}. {})", mSdsmData.sdsmResult.x, mSdsmData.sdsmResult.y, cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
 
     mpScene->rasterize(pRenderContext, mShadowPass.pState.get(), mShadowPass.pVars.get(), RasterizerState::CullMode::Back);
 }

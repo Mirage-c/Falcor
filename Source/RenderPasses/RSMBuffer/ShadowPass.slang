@@ -79,8 +79,8 @@ PsOut psMain(VSOut pIn, uint triangleIndex : SV_PrimitiveID)
     TinyUniformSampleGenerator sg = TinyUniformSampleGenerator(pixel, 0);
 
     psout.color.rgb = bsdf.eval(sd, ls.dir, sg) * ls.Li;
-    psout.color = float4(1.f, 0.f, 0.f, 1.f);
-    psout.normW = float4(0.f, 1.f, 1.f, 1.f);
-    psout.posW = float4(1.f, 1.f, 1.f, 1.f);
+    // psout.color = float4(1.f, 0.f, 0.f, 1.f);
+    // psout.normW = float4(0.f, 1.f, 1.f, 1.f);
+    // psout.posW = float4(1.f, 1.f, 1.f, 1.f);
     return psout;
 }
