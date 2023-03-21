@@ -56,14 +56,17 @@ struct PsOut
 {
     float4 color : SV_TARGET0;
     float4 normal : SV_TARGET1;
+    float4 posW : SV_TARGET2;
 #ifdef _OUTPUT_MOTION_VECTORS
-    float2 motion : SV_TARGET2;
+    float2 motion : SV_TARGET3;
 #endif
 };
 
 PsOut psMain(VSOut vsOut, uint triangleIndex : SV_PrimitiveID)
 {
     PsOut psOut;
+
+    psOut.posW = float4(float3(vsOut.posW), 1.f);
 
     let lod = ImplicitLodTextureSampler();
     if (alphaTest(vsOut, triangleIndex, lod)) discard;

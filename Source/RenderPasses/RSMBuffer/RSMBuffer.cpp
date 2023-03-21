@@ -104,9 +104,6 @@ RenderPassReflection RSMBuffer::reflect(const CompileData& compileData)
 {
     // Define the required resources here
     RenderPassReflection reflector;
-
-
-    const uint2 dim = { 512, 512 }; // TODO
     reflector.addInput(kDepth, "Depth buffer").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(0,0);
     reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
     reflector.addOutput(kNorm, "World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);

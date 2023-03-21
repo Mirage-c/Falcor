@@ -56,6 +56,7 @@ namespace
     const std::string kMotionVecs = "motionVecs";
     const std::string kNormals = "normals";
     const std::string kVisBuffer = "visibilityBuffer";
+    const std::string kPosW = "posW";
 
     const std::string kSampleCount = "sampleCount";
     const std::string kSuperSampling = "enableSuperSampling";
@@ -101,6 +102,7 @@ RenderPassReflection ForwardLightingPass::reflect(const CompileData& compileData
 
     reflector.addInput(kVisBuffer, "Visibility buffer used for shadowing. Range is [0,1] where 0 means the pixel is fully-shadowed and 1 means the pixel is not shadowed at all").flags(RenderPassReflection::Field::Flags::Optional);
     reflector.addInputOutput(kColor, "Color texture").format(mColorFormat).texture2D(0, 0, mSampleCount);
+    reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
 
     auto& depthField = mUsePreGenDepth ? reflector.addInputOutput(kDepth, "Pre-initialized depth-buffer") : reflector.addOutput(kDepth, "Depth buffer");
     depthField.bindFlags(Resource::BindFlags::DepthStencil).texture2D(0, 0, mSampleCount);
@@ -165,7 +167,8 @@ void ForwardLightingPass::initFbo(RenderContext* pRenderContext, const RenderDat
 {
     mpFbo->attachColorTarget(renderData.getTexture(kColor), 0);
     mpFbo->attachColorTarget(renderData.getTexture(kNormals), 1);
-    mpFbo->attachColorTarget(renderData.getTexture(kMotionVecs), 2);
+    mpFbo->attachColorTarget(renderData.getTexture(kPosW), 2);
+    mpFbo->attachColorTarget(renderData.getTexture(kMotionVecs), 3);
 
     for (uint32_t i = 1; i < 3; i++)
     {
