@@ -71,12 +71,13 @@ Dictionary RSMIndirectPass::getScriptingDictionary()
 RSMIndirectPass::RSMIndirectPass()
     : RenderPass(kInfo)
 {
-    mpState = GraphicsState::create();
+   // mpState = GraphicsState::create();
     mpFbo = Fbo::create();
+    mpPass = FullScreenPass::create(kShaderFile);
 
-    DepthStencilState::Desc dsDesc;
-    dsDesc.setDepthWriteMask(false).setDepthFunc(DepthStencilState::Func::LessEqual);
-    mpDsNoDepthWrite = DepthStencilState::create(dsDesc);
+   // DepthStencilState::Desc dsDesc;
+   // dsDesc.setDepthWriteMask(false).setDepthFunc(DepthStencilState::Func::LessEqual);
+   // mpDsNoDepthWrite = DepthStencilState::create(dsDesc);
     srand(10086);
     float samples[64][4];
     for (int i = 0; i < 64; i++) {
@@ -89,17 +90,20 @@ RSMIndirectPass::RSMIndirectPass()
         samples[i][2] = xi1;
         samples[i][3] = 0; // 无效位
     }
-    mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA32Float, 64, 0, samples);
+    mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA32Float, 1, Texture::kMaxPossible, samples);
 }
 
 RenderPassReflection RSMIndirectPass::reflect(const CompileData& compileData)
 {
     // Define the required resources here
     RenderPassReflection reflector;
-    reflector.addInput(kShadowDepth, "shadow map").format(ResourceFormat::D32Float).texture2D(0, 0);
-    reflector.addInput(kShadowPosW, "World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
-    reflector.addInput(kShadowNorm, "World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    // reflector.addInput(kShadowDepth, "shadow map").format(ResourceFormat::D32Float).texture2D(0, 0);
+    reflector.addInput(kShadowPosW, "RSM World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addInput(kShadowNorm, "RSM World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
     reflector.addInput(kShadowColor, "Shadow Color").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    // gbuffer
+    reflector.addInput(kPosW, "GBuffer World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addInput(kNorm, "GBuffer World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
     reflector.addOutput(kColor, "Indirect Illumination Color").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
     return reflector;
 }
@@ -107,23 +111,10 @@ RenderPassReflection RSMIndirectPass::reflect(const CompileData& compileData)
 void RSMIndirectPass::setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene)
 {
     mpScene = pScene;
-    mpVars = nullptr;
+   // mpVars = nullptr;
 
     if (mpScene)
     {
-        Program::Desc desc;
-        desc.addShaderModules(mpScene->getShaderModules());
-        desc.addShaderLibrary(kShaderFile).vsEntry("vsMain").psEntry("psMain");
-        desc.addTypeConformances(mpScene->getTypeConformances());
-        GraphicsProgram::SharedPtr pProgram = GraphicsProgram::create(desc, mpScene->getSceneDefines());
-
-        mpVars = GraphicsVars::create(pProgram->getReflector());
-        mpState->setProgram(pProgram);
-
-        Sampler::Desc samplerDesc;
-        samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
-        // setSampler(Sampler::create(samplerDesc));
-        logInfo("[ForwardLightingPass::setScene] lightCount: '{}'", pScene->getLightCount());
     }
 }
 
@@ -142,7 +133,16 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
     const float4 clearColor(0);
     pRenderContext->clearFbo(mpFbo.get(), clearColor, 1, 0, FboAttachmentType::All);
 
-    
+    mpPass["gNormalTex"] = pNorm;
+    mpPass["gWorldPosTex"] = pPosW;
+
+    mpPass["rNormalTex"] = pShadowNorm;
+    mpPass["rFluxTex"] = pShadowColor;
+    mpPass["rWorldPosTex"] = pShadowPosW;
+
+    mpPass["samplesTex"] = mpSamplesTex;
+
+    mpPass->execute(pRenderContext, mpFbo);
 }
 
 void RSMIndirectPass::renderUI(Gui::Widgets& widget)

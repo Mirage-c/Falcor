@@ -27,6 +27,7 @@
  **************************************************************************/
 #pragma once
 #include "Falcor.h"
+#include "RenderGraph/BasePasses/FullScreenPass.h"
 
 using namespace Falcor;
 
@@ -57,11 +58,13 @@ private:
     RSMIndirectPass();
     // no changing this if using slang
     Fbo::SharedPtr mpFbo;
-    GraphicsProgram::SharedPtr mpProgram;
-    GraphicsVars::SharedPtr mpVars;
-    GraphicsState::SharedPtr mpState;
-    DepthStencilState::SharedPtr mpDsNoDepthWrite;
+    FullScreenPass::SharedPtr mpPass;
     Scene::SharedPtr mpScene;
+   // GraphicsProgram::SharedPtr mpProgram;
+   // GraphicsVars::SharedPtr mpVars;
+   // GraphicsState::SharedPtr mpState;
+   // DepthStencilState::SharedPtr mpDsNoDepthWrite;
+
     // samples
     Texture::SharedPtr mpSamplesTex;
 };
