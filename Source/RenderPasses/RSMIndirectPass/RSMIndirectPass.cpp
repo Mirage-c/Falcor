@@ -79,7 +79,7 @@ RSMIndirectPass::RSMIndirectPass()
    // dsDesc.setDepthWriteMask(false).setDepthFunc(DepthStencilState::Func::LessEqual);
    // mpDsNoDepthWrite = DepthStencilState::create(dsDesc);
     srand(10086);
-    float samples[64][4];
+    float samples[64][4]{};
     for (int i = 0; i < 64; i++) {
         float xi1 = rand() / double(RAND_MAX);
         float xi2 = rand() / double(RAND_MAX);
@@ -88,6 +88,7 @@ RSMIndirectPass::RSMIndirectPass()
         samples[i][0] = x; 
         samples[i][1] = y;
         samples[i][2] = xi1;
+        // logInfo("SAMPLES: {},{},{}", x, y, xi1);
         samples[i][3] = 0; // 无效位
     }
     mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA32Float, 1, Texture::kMaxPossible, samples);
@@ -120,6 +121,7 @@ void RSMIndirectPass::setScene(RenderContext* pRenderContext, const Scene::Share
 
 void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& renderData)
 {
+    if (!mpScene) return;
     // Texture::SharedPtr pShadowDepth = renderData.getTexture(kShadowDepth);
     Texture::SharedPtr pShadowNorm = renderData.getTexture(kShadowNorm);
     Texture::SharedPtr pShadowColor = renderData.getTexture(kShadowColor);
@@ -133,15 +135,27 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
     const float4 clearColor(0);
     pRenderContext->clearFbo(mpFbo.get(), clearColor, 1, 0, FboAttachmentType::All);
 
+
+    InternalDictionary& dict = renderData.getDictionary();
+    globalMat = dict["globalMat"];
+    cascadeOffset = dict["cascadeOffset"];
+    cascadeScale = dict["cascadeScale"];
+    mpPass["PerFrameCB"]["globalMat"] = globalMat;
+    mpPass["PerFrameCB"]["cascadeScale"] = cascadeScale;
+    mpPass["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
+
+    // logInfo("scale: ({}, {}), offset: ({}. {})",cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
+
     mpPass["gNormalTex"] = pNorm;
     mpPass["gWorldPosTex"] = pPosW;
 
     mpPass["rNormalTex"] = pShadowNorm;
     mpPass["rFluxTex"] = pShadowColor;
     mpPass["rWorldPosTex"] = pShadowPosW;
-
+    // logInfo("shadow dimension: {}, {}", pShadowNorm->getWidth(), pShadowNorm->getHeight()); // 1920, 1080
     mpPass["samplesTex"] = mpSamplesTex;
-
+    mpPass["PerFrameCB"]["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
+    mpPass["PerFrameCB"]["shadowMapDimension"] = uint2(pShadowNorm->getWidth(), pShadowNorm->getHeight());
     mpPass->execute(pRenderContext, mpFbo);
 }
 

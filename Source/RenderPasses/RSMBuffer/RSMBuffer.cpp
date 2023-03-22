@@ -92,6 +92,8 @@ RSMBuffer::SharedPtr RSMBuffer::create(RenderContext* pRenderContext, const Dict
 {
     SharedPtr pRSM = SharedPtr(new RSMBuffer());
     pRSM->createShadowPassResources();
+
+    logInfo("RSMBuffer Created.");
     return pRSM;
 }
 
@@ -318,7 +320,6 @@ void RSMBuffer::execute(RenderContext* pRenderContext, const RenderData& renderD
     mShadowPass.pVars["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
 
     // logInfo("scale: ({}, {}), offset: ({}. {})",cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
-
 
     mpScene->rasterize(pRenderContext, mShadowPass.pState.get(), mShadowPass.pVars.get(), rsState, rsState);
 }

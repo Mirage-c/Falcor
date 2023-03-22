@@ -88,6 +88,7 @@ Dictionary ForwardLightingPass::getScriptingDictionary()
 ForwardLightingPass::ForwardLightingPass()
     : RenderPass(kInfo)
 {
+
     mpState = GraphicsState::create();
     mpFbo = Fbo::create();
 
@@ -106,16 +107,16 @@ RenderPassReflection ForwardLightingPass::reflect(const CompileData& compileData
 
     auto& depthField = mUsePreGenDepth ? reflector.addInputOutput(kDepth, "Pre-initialized depth-buffer") : reflector.addOutput(kDepth, "Depth buffer");
     depthField.bindFlags(Resource::BindFlags::DepthStencil).texture2D(0, 0, mSampleCount);
+    reflector.addOutput(kNormals, "World-space shading normal, [0,1] range. Don't forget to transform it to [-1, 1] range").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+   // if (mNormalMapFormat != ResourceFormat::Unknown)
+   // {
+   //     reflector.addOutput(kNormals, "World-space shading normal, [0,1] range. Don't forget to transform it to [-1, 1] range").format(mNormalMapFormat).texture2D(0, 0, mSampleCount);
+   // }
 
-    if (mNormalMapFormat != ResourceFormat::Unknown)
-    {
-        reflector.addOutput(kNormals, "World-space shading normal, [0,1] range. Don't forget to transform it to [-1, 1] range").format(mNormalMapFormat).texture2D(0, 0, mSampleCount);
-    }
-
-    if (mMotionVecFormat != ResourceFormat::Unknown)
-    {
-        reflector.addOutput(kMotionVecs, "Screen-space motion vectors").format(mMotionVecFormat).texture2D(0, 0, mSampleCount);
-    }
+   // if (mMotionVecFormat != ResourceFormat::Unknown)
+   // {
+   //     reflector.addOutput(kMotionVecs, "Screen-space motion vectors").format(mMotionVecFormat).texture2D(0, 0, mSampleCount);
+   // }
 
     return reflector;
 }

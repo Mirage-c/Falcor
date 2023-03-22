@@ -67,4 +67,7 @@ private:
 
     // samples
     Texture::SharedPtr mpSamplesTex;
+    // projection
+    rmcv::mat4 globalMat;
+    rmcv::float4 cascadeScale, cascadeOffset;
 };

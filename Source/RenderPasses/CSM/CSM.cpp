@@ -426,10 +426,7 @@ RenderPassReflection CSM::reflect(const CompileData& compileData)
         .format(getVisBufferFormat(mVisibilityPassData.mapBitsPerChannel, mVisibilityPassData.shouldVisualizeCascades))
         .texture2D(0, 0);
     reflector.addOutput(kShadowMap, "Shadow Map.").format(ResourceFormat::D32Float).texture2D(0, 0);
-    reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).bindFlags(Resource::BindFlags::RenderTarget).texture2D(0, 0);
-    reflector.addOutput(kNorm, "World space normal").format(ResourceFormat::RGBA32Float).bindFlags(Resource::BindFlags::RenderTarget).texture2D(0, 0);
-    reflector.addOutput(kColor, "Color").format(ResourceFormat::RGBA32Float).bindFlags(Resource::BindFlags::RenderTarget).texture2D(0, 0); // .bindFlags(Resource::BindFlags::RenderTarget).texture2D(dim.x, dim.y)
-
+    
     reflector.addInput(kDepth, "Pre-initialized scene depth buffer used for SDSM.\nIf not provided, the pass will run a depth-pass internally").flags(RenderPassReflection::Field::Flags::Optional);
     return reflector;
 }
