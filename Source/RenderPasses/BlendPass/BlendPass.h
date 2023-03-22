@@ -29,12 +29,13 @@
 #include "Falcor.h"
 #include "RenderGraph/BasePasses/FullScreenPass.h"
 
+
 using namespace Falcor;
 
-class RSMIndirectPass : public RenderPass
+class BlendPass : public RenderPass
 {
 public:
-    using SharedPtr = std::shared_ptr<RSMIndirectPass>;
+    using SharedPtr = std::shared_ptr<BlendPass>;
 
     static const Info kInfo;
 
@@ -55,19 +56,9 @@ public:
     virtual bool onKeyEvent(const KeyboardEvent& keyEvent) override { return false; }
 
 private:
-    RSMIndirectPass();
+    BlendPass();
     FullScreenPass::SharedPtr mpPass;
     // no changing this if using slang
     Fbo::SharedPtr mpFbo;
     Scene::SharedPtr mpScene;
-   // GraphicsProgram::SharedPtr mpProgram;
-   // GraphicsVars::SharedPtr mpVars;
-   // GraphicsState::SharedPtr mpState;
-   // DepthStencilState::SharedPtr mpDsNoDepthWrite;
-
-    // samples
-    Texture::SharedPtr mpSamplesTex;
-    // projection
-    rmcv::mat4 globalMat;
-    rmcv::float4 cascadeScale, cascadeOffset;
 };

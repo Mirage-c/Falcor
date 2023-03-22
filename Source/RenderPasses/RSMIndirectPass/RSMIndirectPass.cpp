@@ -131,7 +131,6 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
 
 
     mpFbo->attachColorTarget(renderData.getTexture(kColor), 0);
-
     const float4 clearColor(0);
     pRenderContext->clearFbo(mpFbo.get(), clearColor, 1, 0, FboAttachmentType::All);
 
@@ -143,6 +142,8 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
     mpPass["PerFrameCB"]["globalMat"] = globalMat;
     mpPass["PerFrameCB"]["cascadeScale"] = cascadeScale;
     mpPass["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
+    mpPass["PerFrameCB"]["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
+    mpPass["PerFrameCB"]["shadowMapDimension"] = uint2(pShadowNorm->getWidth(), pShadowNorm->getHeight());
 
     // logInfo("scale: ({}, {}), offset: ({}. {})",cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
 
@@ -154,8 +155,6 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
     mpPass["rWorldPosTex"] = pShadowPosW;
     // logInfo("shadow dimension: {}, {}", pShadowNorm->getWidth(), pShadowNorm->getHeight()); // 1920, 1080
     mpPass["samplesTex"] = mpSamplesTex;
-    mpPass["PerFrameCB"]["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
-    mpPass["PerFrameCB"]["shadowMapDimension"] = uint2(pShadowNorm->getWidth(), pShadowNorm->getHeight());
     mpPass->execute(pRenderContext, mpFbo);
 }
 
