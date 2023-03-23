@@ -88,7 +88,8 @@ struct StandardBSDF : IBSDF
     BSDFProperties getProperties(const ShadingData sd)
     {
         BSDFProperties p = {};
-
+        
+        p.diffuse = data.diffuse;// added
         p.emission = emission;
 
         // Clamp roughness so it's representable of what is actually used in FalcorBSDF.
@@ -99,6 +100,7 @@ struct StandardBSDF : IBSDF
         // Compute approximation of the albedos.
         // For now use the blend weights and colors, but this should be improved to better numerically approximate the integrals.
         p.diffuseReflectionAlbedo = (1.f - data.diffuseTransmission) * (1.f - data.specularTransmission) * data.diffuse;
+        p.diffuseReflectionAlbedo = data.diffuse;
         p.diffuseTransmissionAlbedo = data.diffuseTransmission * (1.f - data.specularTransmission) * data.transmission;
         p.specularReflectionAlbedo = (1.f - data.specularTransmission) * data.specular;
         p.specularTransmissionAlbedo = data.specularTransmission * data.specular;

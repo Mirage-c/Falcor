@@ -55,8 +55,8 @@ struct BSDFSample
 struct BSDFProperties
 {
     float3  emission;                       ///< Radiance emitted in the incident direction (wi).
-    float   roughness;                      ///< Surface roughness on a perceptually linear scale, where 0.0 = perfectly smooth and 1.0 = maximum roughness.
-
+    float roughness;                        ///< Surface roughness on a perceptually linear scale, where 0.0 = perfectly smooth and 1.0 = maximum roughness.
+    float3 diffuse;
     // Approximate directional-hemispherical reflectance/transmittance of the BSDF (black-sky albedo).
     // The exact values are given by the integrals of the BSDF over wo given an incident direction wi.
     // The terms are separated into diffuse and non-diffuse components. Due to energy conservation, the sum is expected to be <= 1.0.

@@ -56,5 +56,5 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         // result = float3(coords.x, 1.f, 1.f);
         indirect += result;
     }
-    return float4(indirect * 100.f, 1.f); // clamp(indirect, 0.f, 1.f)
+    return float4(indirect * 30.f, 1.f); // clamp(indirect, 0.f, 1.f)
 }

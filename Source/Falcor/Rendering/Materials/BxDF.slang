@@ -730,6 +730,13 @@ struct FalcorBSDF : IBxDF
         return result;
     }
 
+    float3 getDiffuseAlbedo() {
+        if (pDiffuseReflection > 0.f)
+            return diffuseReflection.albedo;
+        else
+            return 0.f;
+    }
+
     bool sample<S : ISampleGenerator>(const float3 wi, out float3 wo, out float pdf, out float3 weight, out uint lobe, inout S sg)
     {
         // Default initialization to avoid divergence at returns.

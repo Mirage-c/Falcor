@@ -73,12 +73,17 @@ PsOut psMain(VSOut pIn, uint triangleIndex : SV_PrimitiveID)
     psout.normW = float4(sd.N * 0.5f + 0.5f, 1.0f);
 
     AnalyticLightSample ls;
-    let bsdf = gScene.materials.getBSDF(sd, lod);
     evalLightApproximate(sd.posW, gScene.getLight(0), ls);
-    const uint2 pixel = pIn.posH.xy;
-    TinyUniformSampleGenerator sg = TinyUniformSampleGenerator(pixel, 0);
+    let bsdf = gScene.materials.getBSDF(sd, lod);
+    let bsdfProperties = bsdf.getProperties(sd);
 
-    psout.color.rgb = bsdf.eval(sd, ls.dir, sg) * ls.Li;
+    // let material = gScene.materials.getMaterial(sd.materialID);
+
+    // const uint2 pixel = pIn.posH.xy;
+    // TinyUniformSampleGenerator sg = TinyUniformSampleGenerator(pixel, 0);
+    // psout.color.rgb = bsdf.eval(sd, ls.dir, sg) * ls.Li;
+    // if (any(bsdfProperties.diffuse > float3(0.f, 0.f, 0.f)))
+    psout.color.rgb = bsdfProperties.diffuse * ls.Li; // or diffuse transmission?
     // psout.color = float4(1.f, 0.f, 0.f, 1.f);
     // psout.normW = float4(0.f, 1.f, 1.f, 1.f);
     // psout.posW = float4(1.f, 1.f, 1.f, 1.f);
