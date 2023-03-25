@@ -315,15 +315,24 @@ void ShadowDepthPass::execute(RenderContext* pRenderContext, const RenderData& r
     // auto pCB = mShadowPass.pVars->getParameterBlock(mPerLightCbLoc);
     // pCB->setBlob(&mCsmData, 0, sizeof(mCsmData));
     partitionCascades(pCamera, distanceRange);
+    /*globalMat = rmcv::mat4();
+    globalMat[0] = rmcv::float4(-0.0011486155, 0, 0, -0.095504776);
+    globalMat[1] = rmcv::float4(0, 0.00045544258, 0.0010544618, 0.5032824);
+    globalMat[2] = rmcv::float4(0, -0.0005272309, 0.00022772129, 0.37690482);
+    globalMat[3] = rmcv::float4(0, 0, 0, 1);
+    cascadeScale = rmcv::float4(152.97307, 230.6321, 264.44342, 1);
+    cascadeOffset = rmcv::float4(14.56938, -115.654655, -99.274925, 0);*/
     mShadowPass.pVars["PerFrameCB"]["globalMat"] = globalMat;
     mShadowPass.pVars["PerFrameCB"]["cascadeScale"] = cascadeScale;
     mShadowPass.pVars["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
-
-    InternalDictionary& dict = renderData.getDictionary();
+    /* for (int i = 0; i < 4; i++)
+         logInfo("[ShadowDepthPass] globalMat: {}, {}, {}, {}", globalMat[i][0], globalMat[i][1], globalMat[i][2], globalMat[i][3]);
+    */InternalDictionary& dict = renderData.getDictionary();
     dict["globalMat"] = globalMat;
+    // dict["distanceRange"] = distanceRange;
     dict["cascadeScale"] = cascadeScale;
     dict["cascadeOffset"] = cascadeOffset;
-   // logInfo("mSdsmData.sdsmResult: {}, {}; scale: ({}, {}), offset: ({}. {})", mSdsmData.sdsmResult.x, mSdsmData.sdsmResult.y, cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
+   // logInfo("mSdsmData.sdsmResult: {}, {}; scale: ({}, {}, {}), offset: ({}, {}, {})", mSdsmData.sdsmResult.x, mSdsmData.sdsmResult.y, cascadeScale.x, cascadeScale.y, cascadeScale.z, cascadeOffset.x, cascadeOffset.y, cascadeOffset.z);
 
     mpScene->rasterize(pRenderContext, mShadowPass.pState.get(), mShadowPass.pVars.get(), RasterizerState::CullMode::Back);
 }

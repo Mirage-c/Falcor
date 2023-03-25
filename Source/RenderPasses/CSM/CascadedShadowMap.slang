@@ -234,7 +234,7 @@ float csmEvsmFilter(CsmData csmData, float2 texC, float sampleDepth, uint32_t ca
     return res;
 }
 
-float calcShadowFactorWithCascadeIdx(CsmData csmData, uint32_t cascadeIndex, float3 posW, float2 posSxy)
+float4 calcShadowFactorWithCascadeIdx(CsmData csmData, uint32_t cascadeIndex, float3 posW, float2 posSxy)
 {
     // Apply normal offset
     //posW.xyz += calcNormalOffset(csmData, normal, cascadeIndex);
@@ -242,7 +242,6 @@ float calcShadowFactorWithCascadeIdx(CsmData csmData, uint32_t cascadeIndex, flo
     // Get the global shadow space position
     float4 shadowPos = mul(csmData.globalMat, float4(posW, 1));
     shadowPos /= shadowPos.w;
-
     // Calculate the texC derivatives. We need to do that before applying the scale and offset - the cascadeIndex can be different for pixels in the same quad, resulting in wrong derivatives
     float2 drvX = ddx_fine(shadowPos.xy);
     float2 drvY = ddy_fine(shadowPos.xy);
@@ -259,11 +258,9 @@ float calcShadowFactorWithCascadeIdx(CsmData csmData, uint32_t cascadeIndex, flo
     drvY = drvY * scale.xy;
 
     shadowPos.y = 1 - shadowPos.y;
-
     // Calculate the texC
     shadowPos.z -= csmData.depthBias;
     shadowPos.z = saturate(shadowPos.z);
-
     switch(getFilterMode(csmData))
     {
     case CsmFilter::Point:
@@ -321,18 +318,18 @@ float3 getBlendedCascadeColor(CsmData csmData, float cameraDepth)
     }
 }
 
-float calcShadowFactor(CsmData csmData, float cameraDepth, float3 posW, float2 posSxy)
+float4 calcShadowFactor(CsmData csmData, float cameraDepth, float3 posW, float2 posSxy)
 {
     float weight;
     int cascadeIndex;
     bool blend = getCascadeParamsAndCheckForBlend(csmData, cameraDepth, cascadeIndex, weight);
-    float s = calcShadowFactorWithCascadeIdx(csmData, cascadeIndex, posW, posSxy);
+    float4 s = calcShadowFactorWithCascadeIdx(csmData, cascadeIndex, posW, posSxy);
 
-    if(blend)
-    {       
-        int nextCascade = min(getCascadeCount(csmData) - 1, cascadeIndex + 1);
-        float nextS = calcShadowFactorWithCascadeIdx(csmData, nextCascade, posW, posSxy);
-        s = lerp(nextS, s, weight);
-    }
+    // if(blend)
+    // {       
+    //     int nextCascade = min(getCascadeCount(csmData) - 1, cascadeIndex + 1);
+    //     float4 nextS = calcShadowFactorWithCascadeIdx(csmData, nextCascade, posW, posSxy);
+    //     s = lerp(nextS, s, weight);
+    // }
     return s;
 }

@@ -139,6 +139,9 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
     globalMat = dict["globalMat"];
     cascadeOffset = dict["cascadeOffset"];
     cascadeScale = dict["cascadeScale"];
+    // for (int i = 0; i < 4; i++)
+    //     logInfo("[RSMIndirectPass] globalMat: {}, {}, {}, {}", globalMat[i][0], globalMat[i][1], globalMat[i][2], globalMat[i][3]);
+
     mpPass["PerFrameCB"]["globalMat"] = globalMat;
     mpPass["PerFrameCB"]["cascadeScale"] = cascadeScale;
     mpPass["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
@@ -155,6 +158,10 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
     mpPass["rWorldPosTex"] = pShadowPosW;
     // logInfo("shadow dimension: {}, {}", pShadowNorm->getWidth(), pShadowNorm->getHeight()); // 1920, 1080
     mpPass["samplesTex"] = mpSamplesTex;
+
+    Sampler::Desc samplerDesc;
+    // samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
+    mpPass["gSampler"] = Sampler::create(samplerDesc);
     mpPass->execute(pRenderContext, mpFbo);
 }
 

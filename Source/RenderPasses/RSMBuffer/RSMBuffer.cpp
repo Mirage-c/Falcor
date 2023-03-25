@@ -64,6 +64,9 @@ void RSMBuffer::createShadowPassResources()
     mShadowPass.fboAspectRatio = (float)mMapSize.x / (float)mMapSize.y;
     
     mShadowPass.pState = GraphicsState::create();
+    //DepthStencilState::Desc dsDesc;
+    //dsDesc.setDepthFunc(DepthStencilState::Func::Equal).setDepthWriteMask(false);
+    //DepthStencilState::SharedPtr pDsState = DepthStencilState::create(dsDesc);
     mShadowPass.pState->setDepthStencilState(nullptr);
     mShadowPass.pState->setFbo(mShadowPass.pFbo);
 
@@ -295,9 +298,6 @@ void RSMBuffer::execute(RenderContext* pRenderContext, const RenderData& renderD
 
     const float4 clearColor(0);
     pRenderContext->clearFbo(mShadowPass.pFbo.get(), clearColor, 1, 0, FboAttachmentType::All);
-
-    // Calc the bounds
-    float2 distanceRange = float2(0, 1);
 
 
     GraphicsState::Viewport VP;

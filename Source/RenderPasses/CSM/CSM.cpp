@@ -222,7 +222,12 @@ protected:
 
 static void createShadowMatrix(const DirectionalLight* pLight, const float3& center, float radius, rmcv::mat4& shadowVP)
 {
-    rmcv::mat4 view = rmcv::lookAt(center, center + pLight->getWorldDirection(), float3(0, 1, 0));
+    float3 up(0, 1, 0);
+    if (abs(glm::dot(up, pLight->getWorldDirection())) >= 0.95f)
+    {
+        up = float3(1, 0, 0);
+    }
+    rmcv::mat4 view = rmcv::lookAt(center, center + pLight->getWorldDirection(), up);
     rmcv::mat4 proj = rmcv::ortho(-radius, radius, -radius, radius, -radius, radius);
 
     shadowVP = proj * view;
@@ -511,7 +516,7 @@ void getCascadeCropParams(const float3 crd[8], const rmcv::mat4& lightVP, float4
 
     float4 delta = maxCS - minCS;
     scale = float4(2, 2, 1, 1) / delta;
-
+    //logInfo("###getCascadeCropParams### maxCS: {}, {}, {}; minCS: {}, {}, {}", maxCS.x, maxCS.y, maxCS.z, minCS.x, minCS.y,minCS.z);
     offset.x = -0.5f * (maxCS.x + minCS.x) * scale.x;
     offset.y = -0.5f * (maxCS.y + minCS.y) * scale.y;
     offset.z = -minCS.z * scale.z;
@@ -533,15 +538,17 @@ void CSM::partitionCascades(const Camera* pCamera, const float2& distanceRange)
 
     // Create the global shadow space
     createShadowMatrix(mpLight.get(), camFrustum.center, camFrustum.radius, mShadowPass.fboAspectRatio, mCsmData.globalMat);
+    /* for(int i = 0;i < 4;i++)
+         logInfo("[CSM] globalMat: {}, {}, {}, {}", mCsmData.globalMat[i][0], mCsmData.globalMat[i][1], mCsmData.globalMat[i][2], mCsmData.globalMat[i][3]);*/
 
-    // if (mCsmData.cascadeCount == 1)
-    // {
-    //     mCsmData.cascadeScale[0] = float4(1);
-    //     mCsmData.cascadeOffset[0] = float4(0);
-    //     mCsmData.cascadeRange[0].x = 0;
-    //     mCsmData.cascadeRange[0].y = 1;
-    //     return;
-    // }
+     /*if (mCsmData.cascadeCount == 1)
+     {
+         mCsmData.cascadeScale[0] = float4(1);
+         mCsmData.cascadeOffset[0] = float4(0);
+         mCsmData.cascadeRange[0].x = 0;
+         mCsmData.cascadeRange[0].y = 1;
+         return;
+     }*/
 
     float nearPlane = pCamera->getNearPlane();
     float farPlane = pCamera->getFarPlane();
@@ -597,7 +604,7 @@ void CSM::partitionCascades(const Camera* pCamera, const float2& distanceRange)
         }
 
         getCascadeCropParams(cascadeFrust, mCsmData.globalMat, mCsmData.cascadeScale[c], mCsmData.cascadeOffset[c]);
-        // logInfo("### [{}] cascadeScale: {},{},{},{} ### cascadeOffset: {},{},{},{}", c, mCsmData.cascadeScale[c].x, mCsmData.cascadeScale[c].y, mCsmData.cascadeScale[c].z, mCsmData.cascadeScale[c].w, mCsmData.cascadeOffset[c].x, mCsmData.cascadeOffset[c].y, mCsmData.cascadeOffset[c].z, mCsmData.cascadeOffset[c].w);
+         //logInfo("### [{}] cascadeScale: {},{},{},{} ### cascadeOffset: {},{},{},{}", c, mCsmData.cascadeScale[c].x, mCsmData.cascadeScale[c].y, mCsmData.cascadeScale[c].z, mCsmData.cascadeScale[c].w, mCsmData.cascadeOffset[c].x, mCsmData.cascadeOffset[c].y, mCsmData.cascadeOffset[c].z, mCsmData.cascadeOffset[c].w);
     }
 }
 
