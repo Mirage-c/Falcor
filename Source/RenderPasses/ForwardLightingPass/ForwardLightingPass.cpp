@@ -102,13 +102,14 @@ RenderPassReflection ForwardLightingPass::reflect(const CompileData& compileData
     RenderPassReflection reflector;
 
     reflector.addInput(kVisBuffer, "Visibility buffer used for shadowing. Range is [0,1] where 0 means the pixel is fully-shadowed and 1 means the pixel is not shadowed at all").flags(RenderPassReflection::Field::Flags::Optional);
-    reflector.addInputOutput(kColor, "Color texture").format(mColorFormat).texture2D(0, 0, mSampleCount);
     reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addOutput(kNormals, "World-space shading normal, [0,1] range. Don't forget to transform it to [-1, 1] range").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
 
     auto& depthField = mUsePreGenDepth ? reflector.addInputOutput(kDepth, "Pre-initialized depth-buffer") : reflector.addOutput(kDepth, "Depth buffer");
+    reflector.addInputOutput(kColor, "Color texture").format(mColorFormat).texture2D(0, 0, mSampleCount);
+
     depthField.bindFlags(Resource::BindFlags::DepthStencil).texture2D(0, 0, mSampleCount);
-    reflector.addOutput(kNormals, "World-space shading normal, [0,1] range. Don't forget to transform it to [-1, 1] range").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
-   // if (mNormalMapFormat != ResourceFormat::Unknown)
+    // if (mNormalMapFormat != ResourceFormat::Unknown)
    // {
    //     reflector.addOutput(kNormals, "World-space shading normal, [0,1] range. Don't forget to transform it to [-1, 1] range").format(mNormalMapFormat).texture2D(0, 0, mSampleCount);
    // }

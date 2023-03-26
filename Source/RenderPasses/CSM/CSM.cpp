@@ -427,10 +427,11 @@ static ResourceFormat getVisBufferFormat(uint32_t bitsPerChannel, bool visualize
 RenderPassReflection CSM::reflect(const CompileData& compileData)
 {
     RenderPassReflection reflector;
+
+    reflector.addOutput(kShadowMap, "Shadow Map.").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(0, 0);
     reflector.addOutput(kVisibility, "Visibility map. Values are [0,1] where 0 means the pixel is completely shadowed and 1 means it's not shadowed at all")
         .format(getVisBufferFormat(mVisibilityPassData.mapBitsPerChannel, mVisibilityPassData.shouldVisualizeCascades))
         .texture2D(0, 0);
-    reflector.addOutput(kShadowMap, "Shadow Map.").format(ResourceFormat::D32Float).texture2D(0, 0);
     
     reflector.addInput(kDepth, "Pre-initialized scene depth buffer used for SDSM.\nIf not provided, the pass will run a depth-pass internally").flags(RenderPassReflection::Field::Flags::Optional);
     return reflector;
@@ -606,6 +607,13 @@ void CSM::partitionCascades(const Camera* pCamera, const float2& distanceRange)
         getCascadeCropParams(cascadeFrust, mCsmData.globalMat, mCsmData.cascadeScale[c], mCsmData.cascadeOffset[c]);
          //logInfo("### [{}] cascadeScale: {},{},{},{} ### cascadeOffset: {},{},{},{}", c, mCsmData.cascadeScale[c].x, mCsmData.cascadeScale[c].y, mCsmData.cascadeScale[c].z, mCsmData.cascadeScale[c].w, mCsmData.cascadeOffset[c].x, mCsmData.cascadeOffset[c].y, mCsmData.cascadeOffset[c].z, mCsmData.cascadeOffset[c].w);
     }
+    /*mCsmData.globalMat = rmcv::mat4();
+    mCsmData.globalMat[0] = rmcv::float4(-0.0011486155, 0, 0, -0.095504776);
+    mCsmData.globalMat[1] = rmcv::float4(0, 0.00045544258, 0.0010544618, 0.5032824);
+    mCsmData.globalMat[2] = rmcv::float4(0, -0.0005272309, 0.00022772129, 0.37690482);
+    mCsmData.globalMat[3] = rmcv::float4(0, 0, 0, 1);
+    mCsmData.cascadeScale[0] = rmcv::float4(152.97307, 230.6321, 264.44342, 1);
+    mCsmData.cascadeOffset[0] = rmcv::float4(14.56938, -115.654655, -99.274925, 0);*/
 }
 
 void CSM::renderScene(RenderContext* pCtx, Texture::SharedPtr pShadowBuffer)
@@ -815,6 +823,12 @@ void CSM::execute(RenderContext* pRenderContext, const RenderData& renderData)
 
     // Render visibility buffer
     mVisibilityPass.pPass->execute(pRenderContext, mVisibilityPass.pFbo);
+
+    InternalDictionary& dict = renderData.getDictionary();
+    dict["globalMat"] = mCsmData.globalMat;
+    // dict["distanceRange"] = distanceRange;
+    dict["cascadeScale"] = mCsmData.cascadeScale[0];
+    dict["cascadeOffset"] = mCsmData.cascadeOffset[0];
 }
 
 void CSM::setLight(const Light::SharedConstPtr& pLight)

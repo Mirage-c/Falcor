@@ -127,10 +127,11 @@ float2 applyEvsmExponents(float depth, float2 exponents)
     return expDepth;
 }
 
-float csmFilterUsingHW(CsmData csmData, float2 texC, float depthRef, uint32_t cascadeIndex)
+float4 csmFilterUsingHW(CsmData csmData, float2 texC, float depthRef, uint32_t cascadeIndex)
 {
-    float res = csmData.shadowMap.SampleCmpLevelZero(gCsmCompareSampler, float3(texC, cascadeIndex), depthRef).r;
-    return saturate(res);
+    float4 res = saturate(csmData.shadowMap.SampleCmpLevelZero(gCsmCompareSampler, float3(texC, cascadeIndex), depthRef).r);
+    // res = csmData.shadowMap[float3(texC, 0)];
+    return res;
 }
 
 float csmFixedSizePcf(CsmData csmData, float2 texC, float depthRef, uint32_t cascadeIndex)

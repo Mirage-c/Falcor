@@ -315,6 +315,13 @@ void RSMBuffer::execute(RenderContext* pRenderContext, const RenderData& renderD
     globalMat = dict["globalMat"];
     cascadeOffset = dict["cascadeOffset"];
     cascadeScale = dict["cascadeScale"];
+    /*globalMat = rmcv::mat4();
+    globalMat[0] = rmcv::float4(-0.0011486155, 0, 0, -0.095504776);
+    globalMat[1] = rmcv::float4(0, 0.00045544258, 0.0010544618, 0.5032824);
+    globalMat[2] = rmcv::float4(0, -0.0005272309, 0.00022772129, 0.37690482);
+    globalMat[3] = rmcv::float4(0, 0, 0, 1);
+    cascadeScale = rmcv::float4(152.97307, 230.6321, 264.44342, 1);
+    cascadeOffset = rmcv::float4(14.56938, -115.654655, -99.274925, 0);*/
     mShadowPass.pVars["PerFrameCB"]["globalMat"] = globalMat;
     mShadowPass.pVars["PerFrameCB"]["cascadeScale"] = cascadeScale;
     mShadowPass.pVars["PerFrameCB"]["cascadeOffset"] = cascadeOffset;

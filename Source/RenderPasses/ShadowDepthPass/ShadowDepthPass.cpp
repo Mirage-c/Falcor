@@ -311,7 +311,7 @@ void ShadowDepthPass::execute(RenderContext* pRenderContext, const RenderData& r
     VP.width = mShadowPass.mapSize.y;
 
     // Set shadow pass state
-    mShadowPass.pState->setViewport(0, VP);
+    //mShadowPass.pState->setViewport(0, VP);
     // auto pCB = mShadowPass.pVars->getParameterBlock(mPerLightCbLoc);
     // pCB->setBlob(&mCsmData, 0, sizeof(mCsmData));
     partitionCascades(pCamera, distanceRange);

@@ -42,8 +42,8 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
     // texPos.xy = 2 * texPos.xy + invSize - 1;
 
     float3 indirect = float3(0.f, 0.f, 0.f);
-    float sampleRadius = 0.0f;
-    int NUM_SAMPLES = 1;
+    float sampleRadius = 300.0f;
+    int NUM_SAMPLES = 64;
     for (int i = 0; i < NUM_SAMPLES; i++) {
         float3 s = samplesTex[int2(i, 0)].xyz;
         float2 bias = s.xy;
@@ -57,7 +57,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         // float3 vplPos = rWorldPosTex.Sample(gSampler, coords).xyz;
         // float3 vplNorm = rNormalTex.Sample(gSampler, coords).xyz;
         // float3 vplFlux = rFluxTex.Sample(gSampler, coords).xyz;
-        return float4(vplFlux, 1.f);
+        return float4(vplNorm, 1.f);
 
         float3 result = vplFlux * max(0.f, dot(vplNorm, normalize(posW - vplPos))) * max(0.f, dot(norm, normalize(vplPos - posW)));
         result *= weight * weight;
