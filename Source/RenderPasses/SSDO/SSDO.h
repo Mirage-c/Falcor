@@ -27,14 +27,13 @@
  **************************************************************************/
 #pragma once
 #include "Falcor.h"
-#include "RenderGraph/BasePasses/FullScreenPass.h"
 
 using namespace Falcor;
 
-class RSMIndirectPass : public RenderPass
+class SSDO : public RenderPass
 {
 public:
-    using SharedPtr = std::shared_ptr<RSMIndirectPass>;
+    using SharedPtr = std::shared_ptr<SSDO>;
 
     static const Info kInfo;
 
@@ -50,25 +49,10 @@ public:
     virtual void compile(RenderContext* pRenderContext, const CompileData& compileData) override {}
     virtual void execute(RenderContext* pRenderContext, const RenderData& renderData) override;
     virtual void renderUI(Gui::Widgets& widget) override;
-    virtual void setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene) override;
+    virtual void setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene) override {}
     virtual bool onMouseEvent(const MouseEvent& mouseEvent) override { return false; }
     virtual bool onKeyEvent(const KeyboardEvent& keyEvent) override { return false; }
 
 private:
-    RSMIndirectPass();
-    uint2 mMapSize = uint2(2048, 2048);
-    FullScreenPass::SharedPtr mpPass;
-    // no changing this if using slang
-    Fbo::SharedPtr mpFbo;
-    Scene::SharedPtr mpScene;
-   // GraphicsProgram::SharedPtr mpProgram;
-   // GraphicsVars::SharedPtr mpVars;
-   // GraphicsState::SharedPtr mpState;
-   // DepthStencilState::SharedPtr mpDsNoDepthWrite;
-
-    // samples
-    Texture::SharedPtr mpSamplesTex;
-    // projection
-    rmcv::mat4 globalMat;
-    rmcv::float4 cascadeScale, cascadeOffset;
+    SSDO() : RenderPass(kInfo) {}
 };

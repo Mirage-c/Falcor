@@ -428,7 +428,7 @@ RenderPassReflection CSM::reflect(const CompileData& compileData)
 {
     RenderPassReflection reflector;
 
-    reflector.addOutput(kShadowMap, "Shadow Map.").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(0, 0);
+    reflector.addOutput(kShadowMap, "Shadow Map.").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(mMapSize.x, mMapSize.y);
     reflector.addOutput(kVisibility, "Visibility map. Values are [0,1] where 0 means the pixel is completely shadowed and 1 means it's not shadowed at all")
         .format(getVisBufferFormat(mVisibilityPassData.mapBitsPerChannel, mVisibilityPassData.shouldVisualizeCascades))
         .texture2D(0, 0);

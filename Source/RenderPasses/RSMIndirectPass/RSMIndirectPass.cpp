@@ -27,6 +27,7 @@
  **************************************************************************/
 #include "RSMIndirectPass.h"
 #include "RenderGraph/RenderPassLibrary.h"
+#include <glm/gtc/random.hpp>
 #include <cmath>
 
 const RenderPass::Info RSMIndirectPass::kInfo { "RSMIndirectPass", "Insert pass description here." };
@@ -79,17 +80,33 @@ RSMIndirectPass::RSMIndirectPass()
    // dsDesc.setDepthWriteMask(false).setDepthFunc(DepthStencilState::Func::LessEqual);
    // mpDsNoDepthWrite = DepthStencilState::create(dsDesc);
     srand(10086);
-    float samples[64][4]{};
+    //std::vector<uint32_t> data;
+    //data.resize(64);
+
+    //for (uint32_t i = 0; i < 64; i++)
+    //{
+    //    // Random directions on the XY plane
+    //    float2 xi = (glm::linearRand(float2(-1), float2(1))) * 0.5f + 0.5f;
+    //    float x = xi.x * sin(2 * M_PI * xi.y);
+    //    float y = xi.x * cos(2 * M_PI * xi.y);
+    //    data[i] = glm::packUnorm4x8(float4(x, y, xi.x, 0.0));
+    //}
+
+    //mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA8Unorm, 1, Texture::kMaxPossible, data.data());
+    float samples[64 * 4]{};
     for (int i = 0; i < 64; i++) {
-        float xi1 = rand() / double(RAND_MAX);
+        float2 xi = (glm::linearRand(float2(-1), float2(1))) * 0.5f + 0.5f;
+        float x = xi.x * sin(2 * M_PI * xi.y);
+        float y = xi.x * cos(2 * M_PI * xi.y);
+        samples[4 * i + 2] = xi.x;
+        /*float xi1 = rand() / double(RAND_MAX);
         float xi2 = rand() / double(RAND_MAX);
         float x = xi1 * sin(2 * M_PI * xi2);
-        float y = xi1 * cos(2 * M_PI * xi2);
-        samples[i][0] = x; 
-        samples[i][1] = y;
-        samples[i][2] = xi1;
+        float y = xi1 * cos(2 * M_PI * xi2);*/
+        samples[4 * i] = x; 
+        samples[4 * i + 1] = y;
         // logInfo("SAMPLES: {},{},{}", x, y, xi1);
-        samples[i][3] = 0; // 无效位
+        samples[4 * i + 3] = 0; // 无效位
     }
     mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA32Float, 1, Texture::kMaxPossible, samples);
 }
@@ -99,9 +116,9 @@ RenderPassReflection RSMIndirectPass::reflect(const CompileData& compileData)
     // Define the required resources here
     RenderPassReflection reflector;
     // reflector.addInput(kShadowDepth, "shadow map").format(ResourceFormat::D32Float).texture2D(0, 0);
-    reflector.addInput(kShadowPosW, "RSM World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
-    reflector.addInput(kShadowNorm, "RSM World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
-    reflector.addInput(kShadowColor, "Shadow Color").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addInput(kShadowPosW, "RSM World space position").format(ResourceFormat::RGBA32Float).texture2D(mMapSize.x, mMapSize.y);
+    reflector.addInput(kShadowNorm, "RSM World space normal").format(ResourceFormat::RGBA32Float).texture2D(mMapSize.x, mMapSize.y);
+    reflector.addInput(kShadowColor, "Shadow Color").format(ResourceFormat::RGBA32Float).texture2D(mMapSize.x, mMapSize.y);
     // gbuffer
     reflector.addInput(kPosW, "GBuffer World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
     reflector.addInput(kNorm, "GBuffer World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
@@ -152,7 +169,7 @@ void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& r
     mpPass["PerFrameCB"]["cascadeScale"] = cascadeScale;
     mpPass["PerFrameCB"]["cascadeOffset"] = cascadeOffset;
     mpPass["PerFrameCB"]["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
-    mpPass["PerFrameCB"]["shadowMapDimension"] = uint2(pShadowNorm->getWidth(), pShadowNorm->getHeight());
+    mpPass["PerFrameCB"]["shadowMapDimension"] = uint2(2048, 2048);
 
     // logInfo("scale: ({}, {}), offset: ({}. {})",cascadeScale.x, cascadeScale.y, cascadeOffset.x, cascadeOffset.y);
 

@@ -86,7 +86,7 @@ RenderPassReflection ShadowDepthPass::reflect(const CompileData& compileData)
     RenderPassReflection reflector;
     reflector.addInput(kDepth, "Pre-initialized scene depth buffer used for SDSM");
     const uint2 dim = { 512, 512 }; // TODO
-    reflector.addOutput(kShadowDepth, "Depth buffer").format(ResourceFormat::D32Float).texture2D(0, 0);
+    reflector.addOutput(kShadowDepth, "Depth buffer").format(ResourceFormat::D32Float).texture2D(mMapSize.x, mMapSize.y);
     return reflector;
 }
 

@@ -109,10 +109,10 @@ RenderPassReflection RSMBuffer::reflect(const CompileData& compileData)
 {
     // Define the required resources here
     RenderPassReflection reflector;
-    reflector.addInput(kDepth, "Depth buffer").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(0,0);
-    reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
-    reflector.addOutput(kNorm, "World space normal").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
-    reflector.addOutput(kColor, "Color").format(ResourceFormat::RGBA32Float).texture2D(0, 0); // .bindFlags(Resource::BindFlags::RenderTarget).texture2D(dim.x, dim.y)
+    reflector.addInput(kDepth, "Depth buffer").format(ResourceFormat::D32Float).bindFlags(Resource::BindFlags::DepthStencil).texture2D(mMapSize.x, mMapSize.y);
+    reflector.addOutput(kPosW, "World space position").format(ResourceFormat::RGBA32Float).texture2D(mMapSize.x, mMapSize.y);
+    reflector.addOutput(kNorm, "World space normal").format(ResourceFormat::RGBA32Float).texture2D(mMapSize.x, mMapSize.y);
+    reflector.addOutput(kColor, "Color").format(ResourceFormat::RGBA32Float).texture2D(mMapSize.x, mMapSize.y); // .bindFlags(Resource::BindFlags::RenderTarget).texture2D(dim.x, dim.y)
     return reflector;
 }
 
