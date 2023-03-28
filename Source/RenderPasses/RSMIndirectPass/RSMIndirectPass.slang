@@ -38,7 +38,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
 
     float3 indirect = float3(0.f, 0.f, 0.f);
     float sampleRadius = 0.1f;
-    int NUM_SAMPLES = 64;
+    int NUM_SAMPLES = 512;
     for (int i = 0; i < NUM_SAMPLES; i++) {
         float3 s = samplesTex[int2(i, 0)].xyz;
         float2 bias = s.xy;

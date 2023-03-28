@@ -93,8 +93,8 @@ RSMIndirectPass::RSMIndirectPass()
     //}
 
     //mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA8Unorm, 1, Texture::kMaxPossible, data.data());
-    float samples[64 * 4]{};
-    for (int i = 0; i < 64; i++) {
+    float samples[512 * 4]{};
+    for (int i = 0; i < 512; i++) {
         float2 xi = (glm::linearRand(float2(-1), float2(1))) * 0.5f + 0.5f;
         float x = xi.x * sin(2 * M_PI * xi.y);
         float y = xi.x * cos(2 * M_PI * xi.y);
@@ -108,7 +108,7 @@ RSMIndirectPass::RSMIndirectPass()
         // logInfo("SAMPLES: {},{},{}", x, y, xi1);
         samples[4 * i + 3] = 0; // 无效位
     }
-    mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA32Float, 1, Texture::kMaxPossible, samples);
+    mpSamplesTex = Texture::create2D(512, 1, ResourceFormat::RGBA32Float, 1, Texture::kMaxPossible, samples);
 }
 
 RenderPassReflection RSMIndirectPass::reflect(const CompileData& compileData)
@@ -139,6 +139,17 @@ void RSMIndirectPass::setScene(RenderContext* pRenderContext, const Scene::Share
 void RSMIndirectPass::execute(RenderContext* pRenderContext, const RenderData& renderData)
 {
     if (!mpScene) return;
+    //float samples[64 * 4]{};
+    //for (int i = 0; i < 64; i++) {
+    //    float2 xi = (glm::linearRand(float2(-1), float2(1))) * 0.5f + 0.5f;
+    //    float x = xi.x * sin(2 * M_PI * xi.y);
+    //    float y = xi.x * cos(2 * M_PI * xi.y);
+    //    samples[4 * i + 2] = xi.x;
+    //    samples[4 * i] = x;
+    //    samples[4 * i + 1] = y;
+    //    samples[4 * i + 3] = 0; // 无效位
+    //}
+    //mpSamplesTex = Texture::create2D(64, 1, ResourceFormat::RGBA32Float, 1, Texture::kMaxPossible, samples);
     // Texture::SharedPtr pShadowDepth = renderData.getTexture(kShadowDepth);
     Texture::SharedPtr pShadowNorm = renderData.getTexture(kShadowNorm);
     Texture::SharedPtr pShadowColor = renderData.getTexture(kShadowColor);
