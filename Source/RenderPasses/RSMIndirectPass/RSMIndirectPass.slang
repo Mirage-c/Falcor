@@ -24,7 +24,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
 {
     float2 uv = texC * screenDimension;
     float3 posW = gWorldPosTex[uv].xyz;
-    float3 norm = (gNormalTex[uv].xyz - 0.5) * 2.0;
+    float3 norm = normalize((gNormalTex[uv].xyz - 0.5) * 2.0);
     float4 texPos = mul(globalMat, float4(posW, 1.f));
     texPos /= texPos.w;
 
@@ -47,7 +47,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         float2 coords = texPos.xy + bias * sampleRadius;
         coords *= shadowMapDimension;
         float3 vplPos = rWorldPosTex[coords].xyz;
-        float3 vplNorm = (rNormalTex[coords].xyz - 0.5) * 2.0;
+        float3 vplNorm = normalize((rNormalTex[coords].xyz - 0.5) * 2.0);
         float3 vplFlux = rFluxTex[coords].xyz;
         // float3 vplPos = rWorldPosTex.Sample(gSampler, coords).xyz;
         // float3 vplNorm = (rNormalTex.Sample(gSampler, coords).xyz- 0.5) * 2.0;
@@ -63,5 +63,5 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         indirect += result;
     }
     indirect *= (1.f / NUM_SAMPLES);
-    return float4(indirect * 1.f, 1.f); // clamp(indirect, 0.f, 1.f)
+    return float4(indirect * 0.1f, 1.f); // clamp(indirect, 0.f, 1.f)
 }

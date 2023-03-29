@@ -27,6 +27,10 @@
  **************************************************************************/
 #pragma once
 #include "Falcor.h"
+#include "../Utils/GaussianBlur/GaussianBlur.h"
+#include "SSDOData.slang"
+#include "RenderGraph/RenderGraph.h"
+#include "RenderGraph/RenderPass.h"
 
 using namespace Falcor;
 
@@ -37,22 +41,46 @@ public:
 
     static const Info kInfo;
 
-    /** Create a new render pass object.
-        \param[in] pRenderContext The render context.
-        \param[in] dict Dictionary of serialized parameters.
-        \return A new object, or an exception is thrown if creation failed.
-    */
+    enum class SampleDistribution : uint32_t
+    {
+        Random,
+        UniformHammersley,
+        CosineHammersley
+    };
+
     static SharedPtr create(RenderContext* pRenderContext = nullptr, const Dictionary& dict = {});
 
     virtual Dictionary getScriptingDictionary() override;
     virtual RenderPassReflection reflect(const CompileData& compileData) override;
-    virtual void compile(RenderContext* pRenderContext, const CompileData& compileData) override {}
+    virtual void compile(RenderContext* pRenderContext, const CompileData& compileData) override;
     virtual void execute(RenderContext* pRenderContext, const RenderData& renderData) override;
     virtual void renderUI(Gui::Widgets& widget) override;
-    virtual void setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene) override {}
+    virtual void setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene) override { mpScene = pScene; }
     virtual bool onMouseEvent(const MouseEvent& mouseEvent) override { return false; }
     virtual bool onKeyEvent(const KeyboardEvent& keyEvent) override { return false; }
 
 private:
-    SSDO() : RenderPass(kInfo) {}
+    SSDO();
+    void setNoiseTexture(uint32_t width, uint32_t height);
+    void setKernel();
+
+    SSDOData mData;
+    bool mDirty = false;
+
+    Fbo::SharedPtr mpDOFbo;
+    uint2 mDoMapSize = uint2(1024);
+
+    Sampler::SharedPtr mpNoiseSampler;
+    Texture::SharedPtr mpNoiseTexture;
+    uint2 mNoiseSize = uint2(16);
+
+    Sampler::SharedPtr mpTextureSampler;
+    SampleDistribution mHemisphereDistribution = SampleDistribution::CosineHammersley;
+
+    FullScreenPass::SharedPtr mpSSDOPass;
+    RenderGraph::SharedPtr mpBlurGraph;
+    Dictionary mBlurDict;
+    bool mApplyBlur = true;
+
+    Scene::SharedPtr mpScene;
 };

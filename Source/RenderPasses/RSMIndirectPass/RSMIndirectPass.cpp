@@ -98,15 +98,13 @@ RSMIndirectPass::RSMIndirectPass()
         float2 xi = (glm::linearRand(float2(-1), float2(1))) * 0.5f + 0.5f;
         float x = xi.x * sin(2 * M_PI * xi.y);
         float y = xi.x * cos(2 * M_PI * xi.y);
-        samples[4 * i + 2] = xi.x;
         /*float xi1 = rand() / double(RAND_MAX);
-        float xi2 = rand() / double(RAND_MAX);
-        float x = xi1 * sin(2 * M_PI * xi2);
-        float y = xi1 * cos(2 * M_PI * xi2);*/
+        float xi2 = rand() / double(RAND_MAX);*/
         samples[4 * i] = x; 
         samples[4 * i + 1] = y;
-        // logInfo("SAMPLES: {},{},{}", x, y, xi1);
+        samples[4 * i + 2] = xi.x;
         samples[4 * i + 3] = 0; // 无效位
+        // logInfo("SAMPLES: {},{},{}", x, y, xi1);
     }
     mpSamplesTex = Texture::create2D(512, 1, ResourceFormat::RGBA32Float, 1, Texture::kMaxPossible, samples);
 }
