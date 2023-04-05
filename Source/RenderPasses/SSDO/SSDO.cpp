@@ -117,6 +117,8 @@ void SSDO::execute(RenderContext* pRenderContext, const RenderData& renderData)
     }
     ShaderVar var = mpSSDOPass["PerFrameCB"];
     pCamera->setShaderData(var["gCamera"]);
+    // mpSSDOPass["PerFrameCB"]["screenDimension"] = uint2(mpDOFbo->getWidth(), mpDOFbo->getHeight());
+    // logInfo("screen Dim : {}, {}", mpDOFbo->getWidth(), mpDOFbo->getHeight());
     mpSSDOPass["gNoiseSampler"] = mpNoiseSampler;
     mpSSDOPass["gTextureSampler"] = mpTextureSampler;
     mpSSDOPass["gDepthTex"] = pDepth;

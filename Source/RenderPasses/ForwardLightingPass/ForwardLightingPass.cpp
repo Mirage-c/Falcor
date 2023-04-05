@@ -173,6 +173,7 @@ void ForwardLightingPass::initFbo(RenderContext* pRenderContext, const RenderDat
     mpFbo->attachColorTarget(renderData.getTexture(kPosW), 2);
     mpFbo->attachColorTarget(renderData.getTexture(kMotionVecs), 3);
 
+    // logInfo("screen Dim : {}, {}", mpFbo->getWidth(), mpFbo->getHeight());
     for (uint32_t i = 1; i < 3; i++)
     {
         const auto& pRtv = mpFbo->getRenderTargetView(i).get();

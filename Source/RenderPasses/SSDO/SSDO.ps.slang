@@ -38,7 +38,7 @@ float4 getPosition(float2 uv)
     return posW;
 }
 
-float4 main(float2 texC : TEXCOORD) : SV_TARGET0
+float4 main(float2 texC: TEXCOORD) : SV_TARGET0
 {
     if (gDepthTex.SampleLevel(gTextureSampler, texC, 0).r >= 1)
     {
