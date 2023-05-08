@@ -153,6 +153,7 @@ namespace Falcor
 
     bool Device::isShaderModelSupported(ShaderModel shaderModel) const
     {
+        // logInfo("[Device::isShaderModelSupported] required: {}, support: {}\n", (uint32_t)shaderModel, (uint32_t)mSupportedShaderModel);
         return ((uint32_t)shaderModel <= (uint32_t)mSupportedShaderModel);
     }
 

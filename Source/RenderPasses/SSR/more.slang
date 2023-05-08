@@ -1,6 +1,9 @@
 import Scene.Camera.Camera;
 import Utils.Math.MatrixUtils;
-#define SAMPLE_NUM 4
+
+// cbuffer StaticCB
+// {
+// }
 
 cbuffer PerFrameCB
 {
@@ -8,6 +11,8 @@ cbuffer PerFrameCB
     uint2 screenDimension;
 }
 
+// SamplerState gNoiseSampler;
+// Texture2D gNoiseTex;
 SamplerState gTextureSampler;
 
 Texture2D gDepthTex;
@@ -42,6 +47,12 @@ float4 getPosition(float2 uv)
     return posW;
 }
 
+float getViewZ(float2 uv) {
+    float4 posW = getPosition(uv);
+    float4 posV = mul(gCamera.data.viewMat, posW);
+    posV /= posV.w;
+    return posV.z;
+}
 
 Result rayMarching(float3 startPoint, float3 direction, float stride) { // clip space coordinate
     float maxDistance = 0.5;
@@ -84,7 +95,7 @@ Result rayMarching(float3 startPoint, float3 direction, float stride) { // clip 
     P0 += dP; Q0 += dQ; k0 += dk;
 
     int Step = 0;
-    int MaxStep = 200;
+    int MaxStep = 5000;
     float k = k0;
     float EndX = P1.x * stepDir;
     float3 Q = Q0;
@@ -108,6 +119,9 @@ Result rayMarching(float3 startPoint, float3 direction, float stride) { // clip 
         if (result.isHit)
             break;
     }
+    // P0 += 100 * dP;
+    // result.isHit = true;
+    // result.UV = permute ? P0.yx : P0;
     return result;
 }
 
@@ -116,7 +130,7 @@ Result rayMarching2(float3 ori, float3 dir, float stepSize) { // world
     float3 currentCheck = ori + dir;
     Result result;
     result.isHit = false;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         float4 posH = mul(gCamera.data.viewProjMat, float4(currentCheck, 1.f));
         posH /= posH.w; // ndc
         float2 uv = posH.xy * 0.5 + 0.5;
@@ -129,7 +143,6 @@ Result rayMarching2(float3 ori, float3 dir, float stepSize) { // world
             result.isHit = true;
             break;
         }
-        currentCheck += dir * stepSize;
     }
     return result;
 }
@@ -143,29 +156,35 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
 
     // Calculate world position of pixel
     float3 posW = getPosition(texC).xyz;
-    float3 normal = normalize(gNormalTex.Sample(gTextureSampler, texC).xyz * 2.0f - 1.0f);
-    float3 viewDir = posW - gCamera.data.posW;
+    float3 normal = gNormalTex.Sample(gTextureSampler, texC).xyz;
+    normal = normalize(normal * 2.0f - 1.0f);
+    float3 viewDir = normalize(posW - gCamera.data.posW);
 
-    float s = InitRand(texC);
+    // float3 tangent = normalize(randDir - normal * dot(randDir, normal));
+    // float3 bitangent = cross(normal, tangent);
+    // float3x3 tbn = float3x3FromCols(tangent, bitangent, normal);
+    float3 reflectDir = normalize(reflect(viewDir, normal));
+    reflectDir = normal;
+
+    // view
+    float4 csOrigin = mul(gCamera.data.viewMat, float4(posW, 1.f));
+    // return float4(mul(gCamera.data.viewProjMat, float4(posW, 1.f)).z, 0.f, 0.f, 1.f);
+    // return float4(-csOrigin.z, 0.f, 0.f, 1.f);
+
+    float4 csDirection = mul(gCamera.data.viewMat, float4(reflectDir, 1.f));
+    csOrigin /= csOrigin.w;
+    csDirection /= csDirection.w;
+    csDirection.xyz = normalize(csDirection.xyz);
+
+    Result r = rayMarching(csOrigin.xyz, csDirection.xyz, 1.0f);
+    // Result r = rayMarching2(posW, reflectDir, 1.f);
     float3 indirect = float3(0.f, 0.f, 0.f);
-    for (int i = 0; i < SAMPLE_NUM; i++) {
-        s += float(i);
-        float pdf = 0.0;
-        // float3 reflectDir = reflect(viewDir, normal);
-        float3 reflectDir = SampleDirection(normal, s, pdf);
-        // view
-        float4 csOrigin = mul(gCamera.data.viewMat, float4(posW, 1.f));
-        float4 csDirection = mul(gCamera.data.viewMat, float4(reflectDir, 1.f));
-        csOrigin /= csOrigin.w;
-        csDirection /= csDirection.w;
-        csDirection.xyz = normalize(csDirection.xyz);
-
-        Result r = rayMarching(csOrigin.xyz, csDirection.xyz, 1.0f);
-        // Result r = rayMarching2(posW, reflectDir, 1.f);
-
-        if (r.isHit) {
-            indirect.xyz += gColorTex[r.UV].xyz * 0.5;
-        }
+    if (r.isHit) {
+        indirect.xyz += gColorTex[r.UV].xyz * 0.5;
+        // return float4(gColorTex[texC * screenDimension].xyz, 1);
     }
-    return float4(indirect / float(SAMPLE_NUM), 1.f);
+
+    // float3 color = float3(0.f, 0.f, 0.f);
+    // color = gColorTex.Sample(gTextureSampler, texC).rgb;
+    return float4(indirect, 1.f);
 }

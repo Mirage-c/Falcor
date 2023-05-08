@@ -228,7 +228,7 @@ namespace Falcor
         RtProgramVars::SharedPtr mpProbeUpdateVars;
 
         EnvMapSampler::SharedPtr mpEnvMapSampler;       ///< Environment map sampler.
-        bool mUseEmissiveSampler = true;                ///< Use emissive light sampler for the current frame. This field is updated automatically based on the scene.
+        bool mUseEmissiveSampler = false;                ///< Use emissive light sampler for the current frame. This field is updated automatically based on the scene.
         EmissiveLightSampler::SharedPtr mpEmissiveSampler; ///< Emissive light sampler.
         SampleGenerator::SharedPtr mpSampleGenerator;   ///< Sample generator used for direct lighting computation.
 

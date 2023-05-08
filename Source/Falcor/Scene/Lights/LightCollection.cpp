@@ -130,7 +130,7 @@ namespace Falcor
         {
             throw RuntimeError("LightCollection requires conservative rasterization tier 3 support.");
         }
-        if (!gpDevice->isShaderModelSupported(Device::ShaderModel::SM6_6))
+        if (!gpDevice->isShaderModelSupported(Device::ShaderModel::SM6_5))
         {
             throw RuntimeError("LightCollection requires Shader Model 6.6 support.");
         }
@@ -141,7 +141,7 @@ namespace Falcor
 
         Program::Desc desc;
         desc.addShaderLibrary(kEmissiveIntegratorFile).vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
-        desc.setShaderModel("6_6");
+        desc.setShaderModel("6_5");
         mIntegrator.pProgram = GraphicsProgram::create(desc, defines);
 
         // Create graphics state.

@@ -170,7 +170,7 @@ Dictionary RTXGIPass::getScriptingDictionary()
     Dictionary d;
     d[kEnablePass] = mEnablePass;
     d[kUseVBuffer] = mUseVBuffer;
-    d[kVolumeOptions] = mpVolume->getOptions();
+    //d[kVolumeOptions] = mpVolume->getOptions();
     return d;
 }
 

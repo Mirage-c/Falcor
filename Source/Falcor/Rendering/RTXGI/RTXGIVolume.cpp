@@ -66,8 +66,10 @@ namespace Falcor
         FALCOR_ASSERT(mpScene);
 
         // Update the light sampler to the current frame.
-        FALCOR_ASSERT(mpEmissiveSampler);
-        mpEmissiveSampler->update(pRenderContext);
+        if (mUseEmissiveSampler && mOptions.emissiveSampleCount > 0) {
+            FALCOR_ASSERT(mpEmissiveSampler);
+            mpEmissiveSampler->update(pRenderContext);
+        }
 
         const auto& pLights = mpScene->getLightCollection(pRenderContext);
         FALCOR_ASSERT(pLights);
@@ -329,9 +331,11 @@ namespace Falcor
         if (!mpEnvMapSampler && mpScene->getEnvMap()) mpEnvMapSampler = EnvMapSampler::create(pRenderContext, mpScene->getEnvMap());
 
         // Create emissive light sampler.
-        mpEmissiveSampler = pEmissiveSampler;
-        if (!mpEmissiveSampler) mpEmissiveSampler = LightBVHSampler::create(pRenderContext, mpScene);
-        FALCOR_ASSERT(mpEmissiveSampler);
+        if (mUseEmissiveSampler && mOptions.emissiveSampleCount > 0){
+            mpEmissiveSampler = pEmissiveSampler;
+            if (!mpEmissiveSampler) mpEmissiveSampler = LightBVHSampler::create(pRenderContext, mpScene);
+            FALCOR_ASSERT(mpEmissiveSampler);
+        }
 
         // Prepare our programs for the scene.
         Shader::DefineList defines = mpScene->getSceneDefines();
