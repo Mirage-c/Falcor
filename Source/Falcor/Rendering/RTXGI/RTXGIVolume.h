@@ -61,13 +61,13 @@ namespace Falcor
         {
             bool useAutoGrid = true;                    ///< Compute probe grid parameters based on scene bounds.
 
-            int3 gridSize = { 8, 8, 8 };                ///< Number of probes in the grid.
+            int3 gridSize = { 16, 16, 16 };                ///< Number of probes in the grid.
             float3 gridOrigin = { 0.f, 0.f, 0.f };      ///< Origin of the probe grid in world-space.
             float3 gridSpacing = { 1.f, 1.f, 1.f };     ///< Spacing between probes in world-space.
 
             uint32_t numIrradianceTexels = 8;           ///< Number of texels used in one dimension of the irradiance texture, not including the 1-pixel border on each side.
             uint32_t numDistanceTexels = 16;            ///< Number of texels used in one dimension of the distance texture, not including the 1-pixel border on each side.
-            uint32_t numRaysPerProbe = 256;             ///< Number of rays cast per probe per frame. Independent of the number of probes or resolution of probe textures.
+            uint32_t numRaysPerProbe = 64;// 256             ///< Number of rays cast per probe per frame. Independent of the number of probes or resolution of probe textures.
 
             bool useAutoMaxRayDistance = false;         ///< Compute probe ray distance automatically.
             float probeMaxRayDistance = 1e27f;          ///< Maximum distance a probe ray can travel.
@@ -92,6 +92,7 @@ namespace Falcor
             bool enableEnvMap = true;                   ///< Compute direct lighting from environment map.
             bool enableAnalyticLights = true;           ///< Compute direct lighting from analytic lights.
             bool enableEmissiveLights = true;           ///< Compute direct lighting from emissive lights.
+            bool enableRadianceSpread = false;           ///< ADDED BY CT: Spread the radiance to adjacent probes.
             uint32_t emissiveSampleCount = 1;           ///< Number of samples for emissive lights.
 
             // Note: Empty constructor needed for clang due to the use of the nested struct constructor in the parent constructor.

@@ -110,7 +110,7 @@ private:
 
     struct
     {
-        bool enableVisualizer = false;               ///< Main on/off switch for the visualization pass.
+        bool enableVisualizer = true;               ///< Main on/off switch for the visualization pass.
         bool showProbeStates = false;               ///< Enables visualization of the probe states as colored outline on the probes.
         bool highlightProbe = false;                ///< Enables highlighting of a specific probe.
         uint32_t probeIndex = 0;                    ///< Index of the currently selected probe. This is only used for highlighting a particular probe at the moment.

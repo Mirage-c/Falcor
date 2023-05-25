@@ -21,7 +21,8 @@ Texture2D samplesTex;
 SamplerState gSampler;
 
 float4 main(float2 texC: TEXCOORD) : SV_TARGET0
-{
+{ 
+    
     float2 uv = texC * screenDimension;
     float3 posW = gWorldPosTex[uv].xyz;
     float3 norm = normalize((gNormalTex[uv].xyz - 0.5) * 2.0);

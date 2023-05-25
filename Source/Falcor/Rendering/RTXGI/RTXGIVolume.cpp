@@ -80,6 +80,7 @@ namespace Falcor
             // Re-create the RTXGI probe volume.
             destroyRTXGI();
             validateOptions();
+            initRTXGIShaders(); // ADDED BY CT
             initRTXGI();
 
             // TODO: Remove flush and replace by necessary barriers.
@@ -265,6 +266,10 @@ namespace Falcor
         widget.checkbox("Recursive irradiance", mOptions.enableRecursiveIrradiance);
         widget.tooltip("When enabled, irradiance is computed recursively using data from the previous frame.");
 
+        // added by ct
+        mOptionsDirty |= widget.checkbox("Radiance spread", mOptions.enableRadianceSpread);
+        widget.tooltip("When enabled, radiance is spread to adjacent probes.");
+
         // Show debug data from probe update pass.
         bool debug = mDebug.enable;
         widget.checkbox("Debug probe update", mDebug.enable);
@@ -406,8 +411,10 @@ namespace Falcor
             defines.add("RTXGI_DDGI_PROBE_NUM_TEXELS", std::to_string(mOptions.numIrradianceTexels));
             defines.add("RTXGI_DDGI_BLEND_SHARED_MEMORY", "1"); // without this the rays-per-probe would have no effect
             defines.add("RTXGI_DDGI_BLEND_RAYS_PER_PROBE", std::to_string(mOptions.numRaysPerProbe));
-
+            defines.add("CT_RADIANCE_SPREAD", mOptions.enableRadianceSpread ? "1" : "0");
+            logInfo("CT_RADIANCE_SPREAD: {}", mOptions.enableRadianceSpread ? "1" : "0");
             defines.add("OUTPUT_REGISTER", "u1"); /// irradiance output
+
             mRadianceBlendingCS.pCS = ComputeProgram::createFromFile("rtxgi/shaders/ddgi/ProbeBlendingCS.hlsl", "DDGIProbeBlendingCS", defines);
         }
 
@@ -761,6 +768,7 @@ namespace Falcor
         constant["gDebugThreadID"] = mDebug.threadID;
 
         // Trace the rays
+        // logInfo("DispatchDims: {}, {}", mProbeUpdateDispatchDims.x, mProbeUpdateDispatchDims.y);
         mpScene->raytrace(pRenderContext, mpProbeUpdateProgram.get(), mpProbeUpdateVars, mProbeUpdateDispatchDims);
     }
 

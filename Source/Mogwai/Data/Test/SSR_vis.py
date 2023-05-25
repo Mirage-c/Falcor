@@ -54,6 +54,8 @@ def render_graph_DefaultRenderGraph():
     g.addPass(CSM, 'CSM')
     BlendPass = createPass('BlendPass')
     g.addPass(BlendPass, 'BlendPass')
+    ColorMapPass = createPass('ColorMapPass', {'colorMap': ColorMap.Jet, 'channel': 0, 'autoRange': True, 'minValue': 0.0, 'maxValue': 1.0})
+    g.addPass(ColorMapPass, 'ColorMapPass')
     g.addEdge('DepthPass.depth', 'SkyBox.depth')
     g.addEdge('SkyBox.target', 'ForwardLightingPass.color')
     g.addEdge('DepthPass.depth', 'ForwardLightingPass.depth')
@@ -64,7 +66,8 @@ def render_graph_DefaultRenderGraph():
     g.addEdge('ForwardLightingPass.color', 'SSR.directColor')
     g.addEdge('ForwardLightingPass.color', 'BlendPass.texSrc2')
     g.addEdge('SSR.SSRcolor', 'BlendPass.texSrc1')
-    g.markOutput('BlendPass.texDst')
+    g.addEdge('SSR.SSRcolor', 'ColorMapPass.input')
+    g.markOutput('ColorMapPass.output')
     return g
 
 DefaultRenderGraph = render_graph_DefaultRenderGraph()
