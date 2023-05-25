@@ -167,13 +167,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
 #else
         float3 reflectDir = SampleDirection(normal, s, pdf);
 #endif
-        float4x4 spinMat = {
-            gCamera.data.viewMat._11, gCamera.data.viewMat._12, gCamera.data.viewMat._13, 0,
-            gCamera.data.viewMat._21, gCamera.data.viewMat._22, gCamera.data.viewMat._23, 0,
-            gCamera.data.viewMat._31, gCamera.data.viewMat._32, gCamera.data.viewMat._33, 0,
-            gCamera.data.viewMat._41, gCamera.data.viewMat._42, gCamera.data.viewMat._43, gCamera.data.viewMat._44,
-        };
-        float4 csDirection = mul(spinMat, float4(reflectDir, 1.f));
+        float4 csDirection = mul(gCamera.data.viewMat, float4(reflectDir, 0.f));
         csDirection /= csDirection.w;
         csDirection.xyz = normalize(csDirection.xyz);
 
