@@ -1,7 +1,7 @@
 import Scene.Camera.Camera;
 import Utils.Math.MatrixUtils;
 #define SAMPLE_NUM 1
-#define DEBUG 1
+#define DEBUG 0
 #define REFLECT 1
 
 cbuffer PerFrameCB
@@ -49,6 +49,12 @@ float4 getPosition(float2 uv)
     return posW;
 }
 
+float getNdcDepth(float3 csCurPnt) {
+    float4 ndcCurPnt = mul(gCamera.data.projMat, float4(csCurPnt, 1.f));
+    ndcCurPnt /= ndcCurPnt.w;
+    return ndcCurPnt.z;
+}
+
 #if DEBUG
 Result rayMarching(float3 csOrig, float3 csDir, float stride, int2 texC) {
 #else
@@ -70,8 +76,6 @@ Result rayMarching(float3 csOrig, float3 csDir, float stride) { // clip space co
     float k1 = 1.0f / H1.w; // 10.0
     float3 Q0 = csOrig.xyz * k0;
     float3 Q1 = csEndPoint.xyz * k1;
-    Q0.z = -Q0.z; // 1.0
-    Q1.z = -Q1.z; // 1.0
     // convert to screen space
     H0 /= H0.w;
     H1 /= H1.w;
@@ -102,14 +106,14 @@ Result rayMarching(float3 csOrig, float3 csDir, float stride) { // clip space co
     float3 Q = Q0;
     P0 += dP; Q += dQ; k += dk;
 
-    float prevZMaxEstimate = (dQ.z * 0.5 + Q.z) / (dk * 0.5 + k);
-    P0 += dP; Q.z += dQ.z; k += dk;
-    for (float2 P = P0; Step < MaxStep; Step++, P += dP, Q.z += dQ.z, k += dk)
+    float prevZMaxEstimate = getNdcDepth((dQ * 0.5 + Q) / (dk * 0.5 + k));
+    P0 += dP; Q += dQ; k += dk;
+    for (float2 P = P0; Step < MaxStep; Step++, P += dP, Q += dQ, k += dk)
     {
         result.UV = permute ? P.yx : P;
         float2 Depths;
         Depths.x = prevZMaxEstimate;
-        Depths.y = (dQ.z * 0.5 + Q.z) / (dk * 0.5 + k);
+        Depths.y = getNdcDepth((dQ * 0.5 + Q) / (dk * 0.5 + k));
         prevZMaxEstimate = Depths.y;
         if (Depths.x < Depths.y)
             Depths.xy = Depths.yx;
@@ -131,8 +135,8 @@ Result rayMarching(float3 csOrig, float3 csDir, float stride) { // clip space co
         // result.outputBuffer = float3(csEndPoint);      // (0.296, 0, -0.1)
         // result.outputBuffer = float3(k0, k1, 0.f);     // (1.885, 10, )
         // result.outputBuffer = float3(Q0.z, Q1.z, 0.f); // (1.0, 1.0, )
-        result.outputBuffer = float3(Depths.y, (dQ.z * 0.5 + Q.z), (dk * 0.5 + k));
-        break;
+        // result.outputBuffer = float3(Depths.y, (dQ.z * 0.5 + Q.z), (dk * 0.5 + k));
+        // break;
 #endif
         if (result.isHit)
             break;
@@ -175,6 +179,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         };
         float4 csDirection = mul(spinMat, float4(reflectDir, 1.f));
         csDirection /= csDirection.w;
+        // float4 csDirection = mul(gCamera.data.viewMat, float4(reflectDir, 0.f));
         csDirection.xyz = normalize(csDirection.xyz);
 
 #if DEBUG
