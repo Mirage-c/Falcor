@@ -1,13 +1,31 @@
 import Scene.Camera.Camera;
 import Utils.Math.MatrixUtils;
+#ifndef SAMPLE_NUM
 #define SAMPLE_NUM 1
-#define DEBUG 0
-#define REFLECT 1
+#endif
 
+#ifndef VISUALIZE_RAY
+#define VISUALIZE_RAY 0
+#endif
+
+#ifndef REFLECT
+#define REFLECT 0
+#endif
+
+#ifndef Z_THICKNESS
+#define Z_THICKNESS 0.01
+#endif
+
+#ifndef TIME_INTERPOLATION
+#define TIME_INTERPOLATION 1
+#endif
 cbuffer PerFrameCB
 {
     Camera gCamera;
     uint2 screenDimension;
+    uint frameCnt;
+    float hysteresis;
+    float4x4 prevInvViewProj;
 }
 
 SamplerState gTextureSampler;
@@ -15,6 +33,7 @@ SamplerState gTextureSampler;
 Texture2D gDepthTex;
 Texture2D gNormalTex;
 Texture2D gColorTex;
+Texture2D gPrevColorTex;
 
 struct Result
 {
@@ -22,9 +41,7 @@ struct Result
 
     int2 UV; // screen
     float3 position;
-
-    float rayLength;
-#if DEBUG
+#if VISUALIZE_RAY
     float depth = 0.f;
     float3 outputBuffer;
     bool onLine = false;
@@ -55,7 +72,7 @@ float getNdcDepth(float3 csCurPnt) {
     return ndcCurPnt.z;
 }
 
-#if DEBUG
+#if VISUALIZE_RAY
 Result rayMarching(float3 csOrig, float3 csDir, float stride, int2 texC) {
 #else
 Result rayMarching(float3 csOrig, float3 csDir, float stride) { // clip space coordinate
@@ -63,27 +80,23 @@ Result rayMarching(float3 csOrig, float3 csDir, float stride) { // clip space co
     Result result;
     float maxDistance = 2;
     float rayLength = maxDistance;
-    result.rayLength = rayLength;
     if (csOrig.z + csDir.z * maxDistance > -gCamera.data.nearZ) {
         rayLength = (-gCamera.data.nearZ - csOrig.z) / csDir.z;
     }
-    // csOrig: (0, 0, -0.53)
-    float3 csEndPoint = csOrig + csDir * rayLength; // (0.296, 0, -0.1)
-    // project back to camera, ndc
+    float3 csEndPoint = csOrig + csDir * rayLength;
+    
+    // clip space
     float4 H0 = mul(gCamera.data.projMat, float4(csOrig, 1.f));
     float4 H1 = mul(gCamera.data.projMat, float4(csEndPoint, 1.f));
-    float k0 = 1.0f / H0.w; // 1.885
-    float k1 = 1.0f / H1.w; // 10.0
-    float3 Q0 = csOrig.xyz * k0;
-    float3 Q1 = csEndPoint.xyz * k1;
-    // convert to screen space
+    // ndc
     H0 /= H0.w;
     H1 /= H1.w;
+    // screen space
     float2 P0 = (H0.xy + 1.0f) / 2.0f;
     float2 P1 = (H1.xy + 1.0f) / 2.0f;
     P0.y = 1.f - P0.y;
     P1.y = 1.f - P1.y;
-    // P1 += distance(P0, P1) < 0.01 ? 0.01 : 0.0f;
+    P1 += distance(P0, P1) < 0.01 ? 0.01 : 0.0f;
     P0 *= screenDimension; P1 *= screenDimension;
     float2 delta = P1 - P0;
 
@@ -94,49 +107,53 @@ Result rayMarching(float3 csOrig, float3 csDir, float stride) { // clip space co
     }
     float stepDir = sign(delta.x);
     float invdx = stepDir / delta.x;
-    float3 dQ = (Q1 - Q0) * invdx;
-    float dk = (k1 - k0) * invdx;
     float2 dP = float2(stepDir, delta.y * invdx);
+    float dNdcZ = (H1.z - H0.z) * invdx;
 
-    dP *= stride; dQ *= stride; dk *= stride;
+    dP *= stride; dNdcZ *= stride;
+
     int Step = 0;
     int MaxStep = 2000;
-    float k = k0;
-    float EndX = P1.x * stepDir;
-    float3 Q = Q0;
-    P0 += dP; Q += dQ; k += dk;
+    float ndcZ = H0.z;
+    float2 P = P0;
 
-    float prevZMaxEstimate = getNdcDepth((dQ * 0.5 + Q) / (dk * 0.5 + k));
-    P0 += dP; Q += dQ; k += dk;
-    for (float2 P = P0; Step < MaxStep; Step++, P += dP, Q += dQ, k += dk)
+    P += dP; ndcZ += dNdcZ;
+    float prevZMaxEstimate = ndcZ + 0.5 * dNdcZ; // getNdcDepth((dQ * 0.5 + Q) / (dk * 0.5 + k));
+    P += dP; ndcZ += dNdcZ;
+#if VISUALIZE_RAY
+    result.outputBuffer = float3(0.f, 0.f, 0.f);
+#endif
+    for (; Step < MaxStep; Step++, P += dP, ndcZ += dNdcZ)
     {
         result.UV = permute ? P.yx : P;
-        float2 Depths;
-        Depths.x = prevZMaxEstimate;
-        Depths.y = getNdcDepth((dQ * 0.5 + Q) / (dk * 0.5 + k));
-        prevZMaxEstimate = Depths.y;
-        if (Depths.x < Depths.y)
-            Depths.xy = Depths.yx;
+        float2 rayZMinMax = float2(
+            prevZMaxEstimate,  // rayZMin
+            ndcZ + 0.5 * dNdcZ // rayZMax = getNdcDepth((dQ * 0.5 + Q) / (dk * 0.5 + k)) 
+        );
+        prevZMaxEstimate = rayZMinMax.y;
+        if (rayZMinMax.x > rayZMinMax.y)
+            rayZMinMax.yx = rayZMinMax.xy; // swap
+            
         if (result.UV.x > screenDimension[0] || result.UV.x < 0 || result.UV.y > screenDimension[1] || result.UV.y < 0)
             break;
-        float screenDepth = gDepthTex[result.UV].r;
-        result.isHit = Depths.x >= screenDepth && Depths.y <= screenDepth;
-#if DEBUG
+        float ndcZMin = gDepthTex[result.UV].r;
+        float ndcZMax = ndcZMin + Z_THICKNESS;
+        result.isHit = rayZMinMax.y >= ndcZMin && rayZMinMax.x <= ndcZMax;
+#if VISUALIZE_RAY
         result.onLine = all(result.UV == texC);
-        if(result.onLine) {
-            result.depth = screenDepth;
-            result.depth = Depths.y;
-            result.outputBuffer = float3(Depths.y, 0.f, 0.f); 
+        // 如果步进到的像素是当前像素
+        if (result.onLine) {
+            // 输出参数
+            if (rayZMinMax.x > ndcZMax) { // 光线位于表面后方
+                result.outputBuffer = float3(0.f, rayZMinMax.x, ndcZMax);
+            } else { // 光线位于表面前方
+                result.outputBuffer = float3(rayZMinMax.x, 0.f, ndcZMax);
+            }
+            if (result.isHit) // 相交
+                result.outputBuffer = float3(1.f, 1.f, 0.f);
+            // 终止步进
             break;
-        } else {
-            result.outputBuffer = float3(0.f, 0.f, 0.f);
         }
-        // result.outputBuffer = float3(csOrig); // (1.12, 0, -1.15)
-        // result.outputBuffer = float3(csEndPoint);      // (0.296, 0, -0.1)
-        // result.outputBuffer = float3(k0, k1, 0.f);     // (1.885, 10, )
-        // result.outputBuffer = float3(Q0.z, Q1.z, 0.f); // (1.0, 1.0, )
-        // result.outputBuffer = float3(Depths.y, (dQ.z * 0.5 + Q.z), (dk * 0.5 + k));
-        // break;
 #endif
         if (result.isHit)
             break;
@@ -151,7 +168,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         return gColorTex.Sample(gTextureSampler, texC);
     }
     // 计算光线起点的clip space坐标
-#if DEBUG
+#if VISUALIZE_RAY
     float2 texC_orig = texC;
     texC = float2(0.5, 0.5);
 #endif
@@ -160,8 +177,12 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
     csOrigin /= csOrigin.w;
 
     float3 normal = normalize(gNormalTex.Sample(gTextureSampler, texC).xyz * 2.0f - 1.0f);
-    float3 viewDir = normalize(posW - gCamera.data.posW); 
-    float s = InitRand(texC);
+    float3 viewDir = normalize(posW - gCamera.data.posW);
+#if VISUALIZE_RAY
+    float s = InitRand(posW.xy + posW.z);
+#else
+    float s = InitRand(texC + float2(frameCnt / 233.f, frameCnt / 10086.f) );
+#endif
     float3 indirect = float3(0.f, 0.f, 0.f);
     for (int i = 0; i < SAMPLE_NUM; i++) {
         s += float(i);
@@ -171,18 +192,9 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
 #else
         float3 reflectDir = SampleDirection(normal, s, pdf);
 #endif
-        float4x4 spinMat = {
-            gCamera.data.viewMat._11, gCamera.data.viewMat._12, gCamera.data.viewMat._13, 0,
-            gCamera.data.viewMat._21, gCamera.data.viewMat._22, gCamera.data.viewMat._23, 0,
-            gCamera.data.viewMat._31, gCamera.data.viewMat._32, gCamera.data.viewMat._33, 0,
-            gCamera.data.viewMat._41, gCamera.data.viewMat._42, gCamera.data.viewMat._43, gCamera.data.viewMat._44,
-        };
-        float4 csDirection = mul(spinMat, float4(reflectDir, 1.f));
-        csDirection /= csDirection.w;
-        // float4 csDirection = mul(gCamera.data.viewMat, float4(reflectDir, 0.f));
-        csDirection.xyz = normalize(csDirection.xyz);
+        float4 csDirection = mul(gCamera.data.viewMat, float4(reflectDir, 0.f));
 
-#if DEBUG
+#if VISUALIZE_RAY
         Result r = rayMarching(csOrigin.xyz, csDirection.xyz, 1.f, texC_orig * screenDimension);
 #else
         Result r = rayMarching(csOrigin.xyz, csDirection.xyz, 1.0f);
@@ -190,12 +202,21 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         if (r.isHit) {
             indirect.xyz += gColorTex[r.UV].xyz;
         }
+#if VISUALIZE_RAY
+        return float4(r.outputBuffer, 1.f);
+#endif // VISUALIZE_RAY
 #if REFLECT
-#if DEBUG
-        indirect.xyz = r.outputBuffer;
-#endif // DEBUG
-        break;
+        return float4(indirect, 1.f);
 #endif // REFLECT
     }
-    return float4(indirect / float(SAMPLE_NUM), 1.f);
+    float3 res = indirect / float(SAMPLE_NUM);
+#if TIME_INTERPOLATION
+    // 变换到上一帧的ndc
+    float4 prevNdc = mul(prevInvViewProj, float4(posW, 1.f));
+    prevNdc /= prevNdc.w;
+    float2 prevScreenPos = prevNdc.xy * float2(0.5, -0.5) + 0.5;
+    float3 prevColor = gPrevColorTex.Sample(gTextureSampler, prevScreenPos).xyz;
+    res = hysteresis * prevColor + (1 - hysteresis) * res;
+#endif
+    return float4(res, 1.f);
 }

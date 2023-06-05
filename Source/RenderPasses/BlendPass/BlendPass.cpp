@@ -47,6 +47,8 @@ namespace {
     // others
     const std::string kShaderFile = "RenderPasses/BlendPass/BlendPass.slang";
     const std::string kDst = "texDst";
+
+    const std::string kPrevColor = "prevColor";
 }
 
 BlendPass::BlendPass()
@@ -90,6 +92,8 @@ void BlendPass::setScene(RenderContext* pRenderContext, const Scene::SharedPtr& 
 
 void BlendPass::execute(RenderContext* pRenderContext, const RenderData& renderData)
 {
+
+    if (!mpScene) return;
     // renderData holds the requested resources
     auto& pTexture1 = renderData.getTexture(kTex1);
     auto& pTexture2 = renderData.getTexture(kTex2);
@@ -104,6 +108,10 @@ void BlendPass::execute(RenderContext* pRenderContext, const RenderData& renderD
     mpPass["PerFrameCB"]["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
 
     mpPass->execute(pRenderContext, mpFbo);
+
+    // InternalDictionary& dict = renderData.getDictionary();
+    // pRenderContext->copyResource(prevColor.get(), pColor.get());
+    // dict[kPrevColor] = prevColor;
 }
 
 void BlendPass::renderUI(Gui::Widgets& widget)

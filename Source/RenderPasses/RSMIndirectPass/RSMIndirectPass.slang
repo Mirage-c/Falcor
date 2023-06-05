@@ -39,7 +39,7 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
 
     float3 indirect = float3(0.f, 0.f, 0.f);
     float sampleRadius = 0.1f;
-    int NUM_SAMPLES = 512;
+    int NUM_SAMPLES = 128;
     for (int i = 0; i < NUM_SAMPLES; i++) {
         float3 s = samplesTex[int2(i, 0)].xyz;
         float2 bias = s.xy;
@@ -63,6 +63,6 @@ float4 main(float2 texC: TEXCOORD) : SV_TARGET0
         // result = float3(coords.x, 1.f, 1.f);
         indirect += result;
     }
-    indirect *= (1.f / NUM_SAMPLES);
-    return float4(indirect * 0.1f, 1.f); // clamp(indirect, 0.f, 1.f)
+    indirect *= (1.f / NUM_SAMPLES); // * 0.1f;
+    return float4(indirect, 1.f); // clamp(indirect, 0.f, 1.f)
 }

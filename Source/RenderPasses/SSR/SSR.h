@@ -50,15 +50,35 @@ public:
     virtual void compile(RenderContext* pRenderContext, const CompileData& compileData) override {}
     virtual void execute(RenderContext* pRenderContext, const RenderData& renderData) override;
     virtual void renderUI(Gui::Widgets& widget) override;
-    virtual void setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene) override { mpScene = pScene; }
+    virtual void setScene(RenderContext* pRenderContext, const Scene::SharedPtr& pScene) override {
+        mpScene = pScene;
+        prevInvViewProj = mpScene->getCamera().get()->getViewProjMatrix();
+    }
     virtual bool onMouseEvent(const MouseEvent& mouseEvent) override { return false; }
     virtual bool onKeyEvent(const KeyboardEvent& keyEvent) override { return false; }
 
 private:
     SSR();
     Sampler::SharedPtr mpTextureSampler;
-    FullScreenPass::SharedPtr mpPass;
+    FullScreenPass::SharedPtr mpSSRPass;
+    FullScreenPass::SharedPtr mpSpreadPass;
+    int mCurFrameCnt;
+    rmcv::mat4 prevInvViewProj;
     // no changing this if using slang
     Fbo::SharedPtr mpFbo;
+    Fbo::SharedPtr mpFboSpread;
     Scene::SharedPtr mpScene;
+    // defines
+    struct {
+        int sampleNum = 1;
+        bool visualizeRay = false;
+        bool reflect = false;
+        bool timeInterpolation = true;
+        float zThickness = 0.01f;
+        float hysteresis = 0.9f;
+        int spreadRadius = 15; // pixel
+        int spreadSampleNum = 16;
+    }mOptionsSSR;
+    bool mOptionsDirty = false;
+    void addDefines();
 };

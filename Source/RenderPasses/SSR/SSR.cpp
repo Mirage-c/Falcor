@@ -34,11 +34,17 @@ const RenderPass::Info SSR::kInfo { "SSR", "Insert pass description here." };
 namespace
 {
     const std::string kDirectIllumination = "directColor";
-    const std::string kIndirectIllumination = "SSRcolor";
+    const std::string kIndirectIllumination = "SSRcolorOriginal";
+    const std::string kSpreadedIllumination = "SSRcolor";
+    const std::string kPrevIndirectIllumination = "SSRcolorPrev";
     const std::string kDepth = "depth";
     const std::string kNormals = "normals";
 
-    const std::string kShader = "RenderPasses/SSR/SSR.ps.slang";
+    const std::string kShaderSSR = "RenderPasses/SSR/SSR.ps.slang";
+    const std::string kShaderSpread = "RenderPasses/SSR/SSR_spread.ps.slang";
+
+
+    const std::string kPrevColor = "prevColor";
 }
 
 // Don't remove this. it's required for hot-reload to function properly
@@ -59,10 +65,13 @@ SSR::SSR()
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear).setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
     mpTextureSampler = Sampler::create(samplerDesc);
 
-    mpPass = FullScreenPass::create(kShader);
+    mpSSRPass = FullScreenPass::create(kShaderSSR);
+    mpSpreadPass = FullScreenPass::create(kShaderSpread);
 
     Fbo::Desc fboDesc;
     mpFbo = Fbo::create();
+    mpFboSpread = Fbo::create();
+    mCurFrameCnt = 0;
 }
 
 
@@ -81,7 +90,9 @@ RenderPassReflection SSR::reflect(const CompileData& compileData)
 {
     // Define the required resources here
     RenderPassReflection reflector;
-    reflector.addOutput(kIndirectIllumination, "Color-buffer with SSR applied to it").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addOutput(kSpreadedIllumination, "Color-buffer with SSR spreading applied to it").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    reflector.addInternal(kIndirectIllumination, "Color-buffer with SSR applied to it").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
+    // reflector.addInternal(kPrevIndirectIllumination, "Previous color-buffer with SSR applied to it").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
     reflector.addInput(kNormals, "World space normals, [0, 1] range").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
     reflector.addInput(kDepth, "Depth-buffer").texture2D(0, 0);
     reflector.addInput(kDirectIllumination, "Direct Illumination Color buffer").format(ResourceFormat::RGBA32Float).texture2D(0, 0);
@@ -91,37 +102,80 @@ RenderPassReflection SSR::reflect(const CompileData& compileData)
 void SSR::execute(RenderContext* pRenderContext, const RenderData& renderData)
 {
     if (!mpScene) return;
-    // Run the AO pass
+    addDefines();
+
     auto pDepth = renderData.getTexture(kDepth);
     auto pNormals = renderData.getTexture(kNormals);
-    auto pColorOut = renderData.getTexture(kIndirectIllumination);
-    auto pColorIn = renderData.getTexture(kDirectIllumination);
+    auto pColorSSR = renderData.getTexture(kIndirectIllumination);
+    auto pSSRColorSpreaded = renderData.getTexture(kSpreadedIllumination);
+    auto pColorIn = renderData.getTexture(kDirectIllumination);   
 
-    FALCOR_ASSERT(pColorOut != pColorIn);
-    mpFbo->attachColorTarget(pColorOut, 0);
+    FALCOR_ASSERT(pColorSSR != pColorIn);
+
+    mpFbo->attachColorTarget(pColorSSR, 0);
+    mpFboSpread->attachColorTarget(pSSRColorSpreaded, 0);
     const float4 clearColor(0);
     pRenderContext->clearFbo(mpFbo.get(), clearColor, 1, 0, FboAttachmentType::All);
-
+    if(mOptionsDirty)
+        pRenderContext->clearFbo(mpFboSpread.get(), clearColor, 1, 0, FboAttachmentType::All);
+    
     auto pCamera = mpScene->getCamera().get();
-    /*if (mDirty)
-    {
-        ShaderVar var = mpSSDOPass["StaticCB"];
-        if (var.isValid()) var.setBlob(mData);
-        mDirty = false;
-    }*/
-    ShaderVar var = mpPass["PerFrameCB"];
+    
+    ShaderVar var = mpSSRPass["PerFrameCB"];
     pCamera->setShaderData(var["gCamera"]);
-    mpPass["PerFrameCB"]["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
+    var["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
+    var["frameCnt"] = uint(mCurFrameCnt);
+    var["hysteresis"] = mOptionsSSR.hysteresis;
+    var["prevInvViewProj"] = prevInvViewProj;
     // mpSSDOPass["gNoiseSampler"] = mpNoiseSampler;
-    mpPass["gTextureSampler"] = mpTextureSampler;
-    mpPass["gDepthTex"] = pDepth;
+    mpSSRPass["gTextureSampler"] = mpTextureSampler;
+    mpSSRPass["gDepthTex"] = pDepth;
     // mpSSDOPass["gNoiseTex"] = mpNoiseTexture;
-    mpPass["gNormalTex"] = pNormals;
-    mpPass["gColorTex"] = pColorIn;
+    mpSSRPass["gNormalTex"] = pNormals;
+    mpSSRPass["gColorTex"] = pColorIn;
+    mpSSRPass["gPrevColorTex"] = pSSRColorSpreaded;
 
-    mpPass->execute(pRenderContext, mpFbo);
+    mpSSRPass->execute(pRenderContext, mpFbo);
+    
+    mpSpreadPass["gColorTexSSR"] = pColorSSR;
+    mpSpreadPass["gNormalTex"] = pNormals;
+    mpSpreadPass["PerFrameCB"]["frameCnt"] = uint(mCurFrameCnt);
+    mpSpreadPass["PerFrameCB"]["screenDimension"] = uint2(mpFbo->getWidth(), mpFbo->getHeight());
+
+    pRenderContext->clearFbo(mpFboSpread.get(), clearColor, 1, 0, FboAttachmentType::All);
+    mpSpreadPass->execute(pRenderContext, mpFboSpread);
+    mCurFrameCnt++;
+    prevInvViewProj = pCamera->getViewProjMatrix();
 }
 
 void SSR::renderUI(Gui::Widgets& widget)
 {
+    
+    mOptionsDirty |= widget.checkbox("Debug Ray", mOptionsSSR.visualizeRay);
+    mOptionsDirty |= widget.checkbox("Reflect", mOptionsSSR.reflect);
+    widget.var("zThickness", mOptionsSSR.zThickness, 0.f, 1.f);
+    if (!mOptionsSSR.reflect && !mOptionsSSR.visualizeRay) {
+        widget.checkbox("Recursive Radiance", mOptionsSSR.timeInterpolation);
+        if (mOptionsSSR.timeInterpolation) {
+            widget.var("hysteresis", mOptionsSSR.hysteresis, 0.f, 1.f);
+        }
+        widget.var("Num rays per pixel", mOptionsSSR.sampleNum, 1, 3);
+        widget.var("Radiance Spread Radius (pixel)", mOptionsSSR.spreadRadius);
+        widget.var("Num pixels to spread", mOptionsSSR.spreadSampleNum, 0);
+    }
+    else {
+        mOptionsSSR.spreadSampleNum = 0;
+        mOptionsSSR.spreadRadius = 0;
+    }
+}
+
+void SSR::addDefines() {
+    mpSSRPass->addDefine("SAMPLE_NUM", std::to_string(mOptionsSSR.sampleNum));
+    mpSSRPass->addDefine("VISUALIZE_RAY", std::to_string(mOptionsSSR.visualizeRay ? 1 : 0));
+    mpSSRPass->addDefine("REFLECT", std::to_string(mOptionsSSR.reflect ? 1 : 0));
+    mpSSRPass->addDefine("Z_THICKNESS", std::to_string(mOptionsSSR.zThickness));
+    mpSSRPass->addDefine("TIME_INTERPOLATION", std::to_string(mOptionsSSR.timeInterpolation ? 1 : 0));
+
+    mpSpreadPass->addDefine("SPREAD_RADIUS", std::to_string(mOptionsSSR.spreadRadius));
+    mpSpreadPass->addDefine("SAMPLE_NUM", std::to_string(mOptionsSSR.spreadSampleNum));
 }
