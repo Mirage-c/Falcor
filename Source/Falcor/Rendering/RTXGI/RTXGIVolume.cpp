@@ -412,7 +412,7 @@ namespace Falcor
             defines.add("RTXGI_DDGI_BLEND_SHARED_MEMORY", "1"); // without this the rays-per-probe would have no effect
             defines.add("RTXGI_DDGI_BLEND_RAYS_PER_PROBE", std::to_string(mOptions.numRaysPerProbe));
             defines.add("CT_RADIANCE_SPREAD", mOptions.enableRadianceSpread ? "1" : "0");
-            logInfo("CT_RADIANCE_SPREAD: {}", mOptions.enableRadianceSpread ? "1" : "0");
+            // logInfo("CT_RADIANCE_SPREAD: {}", mOptions.enableRadianceSpread ? "1" : "0");
             defines.add("OUTPUT_REGISTER", "u1"); /// irradiance output
 
             mRadianceBlendingCS.pCS = ComputeProgram::createFromFile("rtxgi/shaders/ddgi/ProbeBlendingCS.hlsl", "DDGIProbeBlendingCS", defines);
